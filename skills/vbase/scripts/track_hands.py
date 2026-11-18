@@ -115,7 +115,7 @@ def main():
     video = os.path.join(a.dir, a.video)
     done = []
     for n, c in enumerate(edl.get("three_d_cues", [])):
-        if c.get("layout") != "tracked":
+        if c.get("layout") != "tracked" or c.get("scene") not in (None, "held_object"):   # cards/chips use full-frame layout but no hands
             continue
         frames, sfps = detect(video, c["timeline_start"], c["timeline_end"], a.sample_fps)
         left, right = by_side(frames)

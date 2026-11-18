@@ -13,6 +13,9 @@ import { Flow } from './ui/Flow';
 import { ProofGrid } from './ui/ProofGrid';
 import { BeforeAfter } from './ui/BeforeAfter';
 import { ScreenVideo } from './ui/ScreenVideo';
+import { GlassCard } from './ui/GlassCard';
+import { GlassChips } from './ui/GlassChips';
+import { Mascot3D } from './three/Mascot3D';
 import { Code } from './ui/Code';
 import { Stat } from './ui/Stat';
 import { Icon3D } from './three/Icon3D';
@@ -32,6 +35,9 @@ export const SCENES: Record<string, SceneDef> = {
   proof_grid: { component: ProofGrid, design: [1760, 1000] },
   before_after: { component: BeforeAfter, design: [1760, 1000] },
   screen_video: { component: ScreenVideo, design: [1760, 1000] },
+  glass_card: { component: GlassCard, design: [0, 0] },     // layout 'tracked': drawn at full frame, places itself
+  glass_chips: { component: GlassChips, design: [0, 0] },
+  mascot3d: { component: Mascot3D, design: [0, 0] },
   held_object: { component: HeldObject, design: [0, 0] }, // layout 'tracked': drawn at full frame size
 };
 

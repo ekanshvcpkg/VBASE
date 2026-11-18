@@ -197,3 +197,17 @@ If nothing in the catalog fits, for example a dashboard, a map, a spreadsheet, o
 **`screen_video`: a real screen recording in a browser window** (layout `broll`)
 - **When:** the speaker describes the product running ("it opens a website", "this is the app").
 - **Props:** `src` (an mp4 under `public/`, e.g. `proof/review-room.mp4`), `url`, `from` (seconds into the recording).
+
+
+**`mascot3d`: a 3D voxel character in a dark starry card** (layout `tracked`)
+- **When:** the speaker names the AI or the product's character ("using Claude", "my assistant").
+- **Props:** `eyebrow` (e.g. "BUILT WITH CLAUDE"), `pos` (`right`/`left`, the side away from the face), `color`.
+- An original character; do not recreate a company's mascot.
+
+**`glass_card`: a frosted-glass title card** (layout `tracked`)
+- **When:** the key claim of a stretch ("a very good starting point", the product's name).
+- **Props:** `eyebrow`, `line1`, `line2` (big accent line, words land one by one), `pos`, `accent`, `logo` (VBASE mark before line2).
+
+**`glass_chips`: glass chips that "think" (•••) then resolve** (layout `tracked`)
+- **When:** a short list of tools, steps or checks ("no APIs, all local").
+- **Props:** `header`, `chips: [{label, glyph, tint, done}]`, `pos`. **Beats:** `chip` × n.
