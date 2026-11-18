@@ -120,6 +120,7 @@ You can also just ask: *"edit ~/Downloads/take.mov with vbase"*.
 | `CLONE_AT=<seconds> CLONE_WORD=<word>` | A clone cut from that moment of the raw take appears behind you on that word. |
 | `BRAND`, `LINE1`, `LINE2`, `TAGLINE`, `END1`, `END2`, `CTA`, `FOOT` | Words of the open and end card. |
 | `SFX=1` | Add procedural sound effects (off by default). |
+| `VBASE_GRADE=natural` | Keep the camera's own colours (no colour grade). |
 | `TAKEONE=0` | Skip the open and end card. |
 
 </details>

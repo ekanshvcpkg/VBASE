@@ -6,7 +6,7 @@
 #   bash scripts/run.sh render  <video>    cut + grade + audio master -> in-footage FX -> 3D/captions -> Take One open/end card -> QC
 #   bash scripts/run.sh review  <video>    open the VBASE review room on the cuts (render does this automatically)
 #
-# Optional env for render:  ZOOM_WORD=zoom   CLONE_AT=<source s> CLONE_WORD=<word>   SFX=1
+# Optional env for render:  ZOOM_WORD=zoom   CLONE_AT=<source s> CLONE_WORD=<word>   SFX=1   VBASE_GRADE=natural (camera colours)
 #                           BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   (Take One words)   TAKEONE=0 (skip Take One)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; VB="${VBASE_HOME:-$HOME/.vbase}"

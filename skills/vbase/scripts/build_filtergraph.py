@@ -98,6 +98,9 @@ def main():
     xr = float(edl.get("speaker_center_x_ratio", 0.5))
     fy = float(edl.get("speaker_face_y_ratio", 0.35))
     grade = GRADES["cinematic" if edl.get("style") == "cinematic" else "default"]
+    # VBASE_GRADE=natural keeps the camera's own colours (only a light sharpen); owners often prefer it
+    if os.environ.get("VBASE_GRADE", "").lower() == "natural":
+        grade = "unsharp=5:5:0.4:3:3:0.2"
     frame_chain = framing(src_w, src_h, W, H, xr)
 
     lines, cat = [], []
