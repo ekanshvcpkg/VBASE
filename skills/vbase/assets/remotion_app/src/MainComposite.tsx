@@ -37,7 +37,9 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
   let split = 0, broll = 0, splitL = 0;
   for (const c of sceneCues) {
     const w = layoutWeight(c, t);
-    if (c.layout === 'split') { split = Math.max(split, w); if ((c as any).props?.side === 'left') splitL = Math.max(splitL, w); }
+    // floating windows hang in the room beside the speaker: the footage stays put (sliding it uncovered black edges)
+    const floats = ((c as any).props?.panel ?? 'float') === 'float';
+    if (c.layout === 'split' && !floats) { split = Math.max(split, w); if ((c as any).props?.side === 'left') splitL = Math.max(splitL, w); }
     if (c.layout === 'broll') broll = Math.max(broll, w);
   }
   const vertical = height >= width * 0.95;

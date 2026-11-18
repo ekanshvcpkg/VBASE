@@ -90,6 +90,7 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
   const box = layoutBox(layout, width, height, side);
   const dir = side === 'left' ? -1 : 1; // which way the panel leaves
   const vertical = height >= width * 0.95;
+  const floating = layout === 'split' && !vertical && (cue.props?.panel ?? 'float') === 'float';
   // portrait: a fixed design width, height matched to the box so the scene fills it (bigger type)
   const tracked = layout === 'tracked';
   const panel = layout === 'split';
@@ -104,12 +105,13 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
   const env = tracked || layout === 'broll' || panel ? 1 : envelope(t, dur, 0.35, 0.25);
   const wipeIn = panel ? prog(t, 0, 0.5, EASE.out) : 1;
   const wipeOut = panel ? prog(t, dur - 0.4, 0.4, EASE.inOut) : 0;
+  const fIn = prog(t, 0, 0.7, EASE.out), fOut = prog(t, dur - 0.45, 0.45, EASE.inOut);
   const palette = cue.props?.palette ?? brand?.palette ?? 'paper';
   const P = palette === 'ink' ? INK : PAPER;
   const Comp = def.component;
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      {panel && (
+      {panel && !floating && (
         <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, background: P.bg,
           clipPath: vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : side === 'left' ? `inset(0 0 0 ${(1 - wipeIn) * 100}%)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`,
           transform: vertical ? `translateY(${-wipeOut * 105}%)` : `translateX(${dir * wipeOut * 105}%)`,
@@ -120,9 +122,14 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
       {/* position in real pixels on the outer box; `zoom` goes on the inner box only,
           because Chrome also scales a zoomed element's own left/top */}
       <div style={{ position: 'absolute', left: box.x + (box.w - dw * zoom) / 2, top: box.y + (box.h - dh * zoom) / 2,
-        width: dw * zoom, height: dh * zoom, opacity: Math.min(1, env * 1.3),
-        clipPath: panel ? (vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : side === 'left' ? `inset(0 0 0 ${(1 - wipeIn) * 100}%)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`) : undefined,
-        transform: panel ? (vertical ? `translateY(${-wipeOut * box.h * 1.05}px)` : `translateX(${dir * wipeOut * box.w * 1.05}px)`) : `translateY(${(1 - env) * 24}px)` }}>
+        width: dw * zoom, height: dh * zoom, opacity: floating ? Math.min(1, fIn * 1.4) * (1 - fOut) : Math.min(1, env * 1.3),
+        clipPath: panel && !floating ? (vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`) : undefined,
+        // floating: the window hangs in the room beside the speaker, angled toward them, and settles in from its side
+        transform: floating
+          ? `perspective(2000px) translateX(${dir * ((1 - fIn) * 160 + fOut * 200)}px) translateY(${Math.sin(t * 1.1) * 6 + (1 - fIn) * 30}px) rotateY(${-dir * (9 + (1 - fIn) * 22)}deg) rotateX(${2 * Math.sin(t * 0.7)}deg) scale(${0.8 + 0.06 * fIn})`
+          : panel ? (vertical ? `translateY(${-wipeOut * box.h * 1.05}px)` : `translateX(${dir * wipeOut * box.w * 1.05}px)`) : `translateY(${(1 - env) * 24}px)`,
+        transformOrigin: floating ? (side === 'left' ? '45% 50%' : '55% 50%') : undefined,
+        filter: floating ? 'drop-shadow(0 40px 50px rgba(0,0,0,0.55)) drop-shadow(0 8px 14px rgba(0,0,0,0.35))' : undefined }}>
         <div style={{ position: 'relative', width: dw, height: dh, zoom }}>
           <Comp t={t} dur={dur} props={{ palette, ...(cue.props ?? {}) }} beats={cue.beats ?? []} accent={cue.accent ?? cue.props?.accent ?? brand?.accent ?? THEME.accent} index={index}
             w={dw} h={dh} vertical={dh > dw * 1.1} layout={layout} />
