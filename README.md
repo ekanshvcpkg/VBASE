@@ -23,51 +23,39 @@ A Claude Code plugin that edits your talking-head videos: word-timed cuts, capti
 
 <img src="docs/images/vbase-install.gif" width="860" alt="Terminal walkthrough: add the VBASE marketplace, install the plugin, run setup, then edit a video">
 
-<table>
-<tr>
-<td width="25%" valign="top">
+**1. Install** — paste into your terminal:
 
-**1 · Add the marketplace**
-
-```text
-/plugin marketplace add
-  ekanshvcpkg/VBASE
+```bash
+claude plugin marketplace add ekanshvcpkg/VBASE && claude plugin install vbase@vbase
 ```
 
-</td>
-<td width="25%" valign="top">
-
-**2 · Install the plugin**
-
-```text
-/plugin install vbase@vbase
-```
-
-</td>
-<td width="25%" valign="top">
-
-**3 · One-time setup**
+**2. Set up** — once, inside Claude Code (about 5–10 minutes):
 
 ```text
 /vbase:setup
 ```
 
-<sub>~5–10 min, a few GB. Prints a ready / missing table.</sub>
-
-</td>
-<td width="25%" valign="top">
-
-**4 · Edit a video**
+**3. Edit** — any video:
 
 ```text
 /vbase:edit ~/Downloads/take.mov
 ```
 
-<sub>Out comes <code>take-vbase.mp4</code> next to it.</sub>
+You get `take-vbase.mp4` next to your video.
 
-</td>
-</tr>
-</table>
+<details>
+<summary>Prefer installing from inside Claude Code?</summary>
+
+Run these one at a time:
+
+```text
+/plugin marketplace add ekanshvcpkg/VBASE
+```
+```text
+/plugin install vbase@vbase
+```
+
+</details>
 
 > [!TIP]
 > You can also just talk to Claude: *"edit ~/Downloads/take.mov with vbase, make it vertical, my name is Ada"*.
