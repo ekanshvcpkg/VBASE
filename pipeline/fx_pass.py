@@ -227,11 +227,10 @@ def main():
                 return zpk + (1 - zpk) * smooth((tz - zoom_out_t) / 1.2)
 
             def warp(src, z):
-                cw2, ch2 = W / z, H / z
-                x0z = min(max(fc[0] - cw2 / 2, 0), W - cw2)
-                y0z = min(max(fc[1] - ch2 * 0.42, 0), H - ch2)
-                dx = dy = 0.0   # locked off: any wobble during a zoom reads as jitter
-                M = np.float32([[z, 0, -x0z * z + dx], [0, z, -y0z * z + dy]])
+                # scale about a fixed point on the face: P stays put and the frame always stays filled for z >= 1,
+                # so the camera path has no clamping kinks (a clamped crop made the move judder)
+                px = min(max(fc[0], W * 0.2), W * 0.8); py = min(max(fc[1], H * 0.2), H * 0.8)
+                M = np.float32([[z, 0, (1 - z) * px], [0, z, (1 - z) * py]])
                 return cv2.warpAffine(src, M, (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
             frame = warp(frame, zoom_at(t))   # a clean snap: averaging zoom levels ghosted the face

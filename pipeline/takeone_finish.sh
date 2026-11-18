@@ -15,7 +15,8 @@ VBASE_HOME="${VBASE_HOME:-$HOME/.vbase}"; TO="$VBASE_HOME/take-one/scripts"
 F="$W/final_render.mp4"; NAME="$(basename "${SRC%.*}")"; OUT="${OUT_NAME:-$NAME-vbase.mp4}"
 
 # project scaffold (first run)
-if [[ ! -f "$T/film.html" ]]; then bash "$TO/new-canvas-project.sh" "$T" >/dev/null; cp "$HERE/takeone_film.html" "$T/film.html"; fi
+[[ -f "$T/export.mjs" ]] || bash "$TO/new-canvas-project.sh" "$T" >/dev/null
+cp "$HERE/takeone_film.html" "$T/film.html"      # always the plugin's current page; per-video words live in cfg.json
 
 # per-video settings for the page
 python3 - "$W" "$T/cfg.json" <<'EOF'

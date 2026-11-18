@@ -244,9 +244,9 @@ export const HeldObject: React.FC<SceneProps> = ({ t, dur, props, beats, accent,
                 fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" />
               <circle cx={x0} cy={y0} r="4" fill="#fff" />
             </svg>
-            <div style={{ position: 'absolute', top: y1 - 70, left: labelLeft ? undefined : x2 + 14, right: labelLeft ? w - x2 + 14 : undefined,
+            <div style={{ position: 'absolute', top: y1 - 96, left: labelLeft ? undefined : x2 + 14, right: labelLeft ? w - x2 + 14 : undefined,
               textAlign: labelLeft ? 'right' : 'left', fontFamily: THEME.font, opacity: Math.max(0, labelP * 2 - 1),
-              textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4)' }}>
+              background: 'rgba(10,10,12,0.74)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 18px 12px' }}>
               <div style={{ color: '#fff', fontSize: 46, fontWeight: 600, letterSpacing: '-0.015em' }}>{props.label}</div>
               {props.sub && <div style={{ color: 'rgba(255,255,255,0.78)', fontSize: 34, fontWeight: 400, marginTop: 2 }}>{props.sub}</div>}
             </div>
