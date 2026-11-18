@@ -199,7 +199,7 @@ If nothing in the catalog fits, for example a dashboard, a map, a spreadsheet, o
 - **Props:** `src` (an mp4 under `public/`, e.g. `proof/review-room.mp4`), `url`, `from` (seconds into the recording).
 
 
-**`mascot3d`: a 3D voxel character in a dark starry card** (layout `tracked`)
+**`mascot3d`: a 3D voxel character that runs across the room behind the speaker** (layout `tracked`; `mode: "card"` for the old starry card)
 - **When:** the speaker names the AI or the product's character ("using Claude", "my assistant").
 - **Props:** `eyebrow` (e.g. "BUILT WITH CLAUDE"), `pos` (`right`/`left`, the side away from the face), `color`.
 - An original character; do not recreate a company's mascot.
@@ -211,3 +211,8 @@ If nothing in the catalog fits, for example a dashboard, a map, a spreadsheet, o
 **`glass_chips`: glass chips that "think" (•••) then resolve** (layout `tracked`)
 - **When:** a short list of tools, steps or checks ("no APIs, all local").
 - **Props:** `header`, `chips: [{label, glyph, tint, done}]`, `pos`. **Beats:** `chip` × n.
+
+
+**In-room elements sit BEHIND the speaker.** `glass_card`, `glass_chips` and `mascot3d` are drawn between the footage and
+a cut-out of the speaker (`person.webm`, made by `pipeline/person_matte.py`), and placed in the free wall beside the head
+(`props.place`, measured per cue). Never put an element on the face; `props.behind: false` or `props.pos_locked` override.

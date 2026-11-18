@@ -14,8 +14,11 @@ export const GlassChips: React.FC<SceneProps> = ({ t, dur, props, beats, w, h })
   const glass = (tint: string) => ({ background: `linear-gradient(110deg, ${tint} 0%, rgba(255,255,255,0.82) 55%)`, backdropFilter: 'blur(18px)',
     WebkitBackdropFilter: 'blur(18px)', border: '1.5px solid rgba(255,255,255,0.8)', boxShadow: '0 18px 40px -16px rgba(0,0,0,0.45)' });
   const hk = prog(t, 0, 0.45, EASE.outBack);
+  // props.place (from person_matte.py): the free wall beside the speaker's head; the group fits inside it
+  const pl = props.place, fit = pl ? Math.min(1, pl.w / W) : 1;
+  const pos = pl ? { left: right ? pl.x + pl.w - W * fit : pl.x, top: pl.y } : { [right ? 'right' : 'left']: w * 0.04, top: h * 0.4 };
   return (
-    <div style={{ position: 'absolute', [right ? 'right' : 'left']: w * 0.04, top: h * 0.4, width: W, fontFamily: THEME.font, opacity: 1 - out }}>
+    <div style={{ position: 'absolute', ...pos, width: W, fontFamily: THEME.font, opacity: 1 - out, transform: `scale(${fit})`, transformOrigin: 'top left' }}>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 28px 12px 14px', borderRadius: 999, ...glass('rgba(255,255,255,0.9)'),
           opacity: Math.min(1, hk * 1.4), transform: `scale(${mix(Math.min(hk, 1), 0.85, 1)})` }}>

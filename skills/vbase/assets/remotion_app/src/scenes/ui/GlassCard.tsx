@@ -18,12 +18,15 @@ export const GlassCard: React.FC<SceneProps> = ({ t, dur, props, accent, w, h })
   const left = (props.pos ?? 'left') === 'left';
   const words: string[] = String(props.line2 ?? '').split(' ');
   const cw = Math.min(760, w * 0.4);
+  // props.place (from person_matte.py): the free wall beside the speaker's head; the card fits inside it
+  const pl = props.place, fit = pl ? Math.min(1, pl.w / cw) : 1;
+  const pos = pl ? { left: left ? pl.x : pl.x + pl.w - cw * fit, top: pl.y } : { [left ? 'left' : 'right']: w * 0.04, top: h * 0.43 };
   return (
-    <div style={{ position: 'absolute', [left ? 'left' : 'right']: w * 0.04, top: h * 0.43, width: cw, padding: '30px 38px 36px',
+    <div style={{ position: 'absolute', ...pos, width: cw, boxSizing: 'border-box', padding: '30px 38px 36px',
       borderRadius: 30, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(22px) saturate(1.4)', WebkitBackdropFilter: 'blur(22px) saturate(1.4)',
       border: '1.5px solid rgba(255,255,255,0.85)', boxShadow: '0 30px 70px -20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.9)',
       fontFamily: THEME.font, opacity: Math.min(1, inn * 1.4) * (1 - out),
-      transform: `translateY(${(1 - inn) * 40 - out * 20}px) scale(${mix(Math.min(inn, 1), 0.9, 1) * (1 - out * 0.04)})`, transformOrigin: left ? '20% 80%' : '80% 80%' }}>
+      transform: `translateY(${(1 - inn) * 40 - out * 20}px) scale(${fit * mix(Math.min(inn, 1), 0.9, 1) * (1 - out * 0.04)})`, transformOrigin: pl ? 'top left' : left ? '20% 80%' : '80% 80%' }}>
       {props.eyebrow && (
         <div style={{ display: 'inline-block', padding: '8px 20px', borderRadius: 999, border: `2px solid ${A}`, color: A, fontSize: 26, fontWeight: 700,
           letterSpacing: '0.12em', textTransform: 'uppercase', opacity: prog(t, 0.15, 0.3, EASE.out) }}>{props.eyebrow}</div>

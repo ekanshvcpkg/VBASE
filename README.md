@@ -119,10 +119,10 @@ You can also just ask: *"edit ~/Downloads/take.mov with vbase"*.
 | `ZOOM_WORD=zoom` | Camera pushes in on the word's first use, pulls out on its second. |
 | `CLONE_AT=<seconds> CLONE_WORD=<word>` | A clone cut from that moment of the raw take appears behind you on that word. |
 | `BRAND`, `LINE1`, `LINE2`, `TAGLINE`, `END1`, `END2`, `CTA`, `FOOT` | Words of the open and end card. |
-| `MUSIC=code` | Compose VBASE's own background bed in code: free, fitted to the exact length, starts very low and builds, ducks under your voice. |
+| `MUSIC=code` | Compose VBASE's own background bed in code: free, fitted to the exact length, at one steady, low level under your voice. |
 | `SFX=1` | Quiet pop sounds only where a visual pops in, timed to its frame and tuned to the bed (off by default). |
 | `VBASE_GRADE=natural` | Keep the camera's own colours (no colour grade). |
-| `MUSIC_FILE=track.mp3` | Your own background music: starts very low, rises slowly, ducks under your voice (`MUSIC_GAIN` sets how light). |
+| `MUSIC_FILE=track.mp3` | Your own background music at one steady, low level under your voice (`MUSIC_LUFS`, default −31). |
 | `TAKEONE=0` | Skip the open and end card. |
 
 </details>

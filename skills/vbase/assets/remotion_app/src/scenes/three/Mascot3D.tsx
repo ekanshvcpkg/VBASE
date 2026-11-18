@@ -26,13 +26,14 @@ const Box: React.FC<{ p: [number, number, number]; s: [number, number, number]; 
   <mesh position={p}><boxGeometry args={s} />{m}</mesh>
 );
 
-const Critter: React.FC<{ t: number; color: string }> = ({ t, color }) => {
+const Critter: React.FC<{ t: number; color: string; run?: number }> = ({ t, color, run = 0 }) => {
   const body = <meshPhysicalMaterial color={color} metalness={0.45} roughness={0.32} clearcoat={0.5} clearcoatRoughness={0.25} envMapIntensity={1.2} />;
   const eye = <meshStandardMaterial color="#FFF1DC" emissive="#FFD8A8" emissiveIntensity={2.2} />;
   const blink = (t % 2.6) > 2.45 ? 0.15 : 1;                 // a quick blink every ~2.6 s
-  const step = (i: number) => 0.18 * Math.max(0, Math.sin(t * 9 + i * Math.PI));   // legs lift in turn
+  const step = (i: number) => (run ? 0.34 : 0.18) * Math.max(0, Math.sin(t * (run ? 17 : 9) + i * Math.PI));   // legs lift in turn
   return (
-    <group rotation={[0.18 + Math.sin(t * 1.3) * 0.05, Math.sin(t * 1.1) * 0.55, Math.sin(t * 0.9) * 0.04]} position={[0, Math.sin(t * 2.2) * 0.12, 0]}>
+    <group rotation={run ? [0.12, -run * 0.75, -run * 0.12] : [0.18 + Math.sin(t * 1.3) * 0.05, Math.sin(t * 1.1) * 0.55, Math.sin(t * 0.9) * 0.04]}
+      position={[0, run ? Math.abs(Math.sin(t * 8.5)) * 0.35 : Math.sin(t * 2.2) * 0.12, 0]}>
       <Box p={[0, 0.25, 0]} s={[3.2, 2.1, 1.3]} m={body} />                       {/* body */}
       <Box p={[-2.0, 0.05, 0]} s={[0.8, 0.7, 0.9]} m={body} />                    {/* arms */}
       <Box p={[2.0, 0.05, 0]} s={[0.8, 0.7, 0.9]} m={body} />
@@ -49,7 +50,36 @@ const Critter: React.FC<{ t: number; color: string }> = ({ t, color }) => {
   );
 };
 
-export const Mascot3D: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
+const Runner: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
+  // the character runs across the room at wall height (it passes behind the speaker: see person.webm)
+  const W = Math.round(w), H = Math.round(h), FOV = 30, Z = 10;
+  const halfH = Z * Math.tan((FOV / 2) * Math.PI / 180), halfW = halfH * (W / H);
+  const dir = props.from === 'right' ? -1 : 1;
+  const k = Math.min(1, t / dur), ease = k < 0.12 ? 0.5 * k * k / 0.12 : k - 0.06;   // a quick start, then a steady run
+  const X = dir * mix(ease / 0.94, -halfW - 1.6, halfW + 1.6), Y = props.y ?? 0.75;
+  const sx = (X / halfW * 0.5 + 0.5) * W, sy = (0.5 - Y / (2 * halfH)) * H;
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <ThreeCanvas width={W} height={H} gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
+        style={{ position: 'absolute', inset: 0, backgroundColor: 'transparent' }} camera={{ fov: FOV, position: [0, 0, Z], near: 0.1, far: 100 }}>
+        <ambientLight intensity={0.45} />
+        <directionalLight position={[-6, 4, 5]} intensity={2.0} color="#FFE6CC" />
+        <directionalLight position={[5, -1, 3]} intensity={0.5} color="#C3D5FF" />
+        <pointLight position={[X, Y + 1.2, 2.5]} intensity={6} distance={6} color="#FFB37A" />
+        <LocalEnvironment />
+        <group position={[X, Y, 0]} scale={0.42}><Critter t={t} color={props.color ?? '#C8693E'} run={dir} /></group>
+      </ThreeCanvas>
+      {props.eyebrow && (
+        <div style={{ position: 'absolute', left: sx, top: sy - h * 0.2, transform: 'translateX(-50%)', padding: '8px 18px', borderRadius: 999,
+          background: 'rgba(10,10,12,0.78)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontFamily: THEME.font, fontSize: 30,
+          fontWeight: 700, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{props.eyebrow}</div>
+      )}
+    </div>
+  );
+};
+
+export const Mascot3D: React.FC<SceneProps> = (sp) => (sp.props?.mode ?? 'run') === 'run' ? <Runner {...sp} /> : <MascotCard {...sp} />;
+const MascotCard: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
   const inn = prog(t, 0, 0.55, EASE.outBack), out = prog(t, dur - 0.35, 0.35, EASE.exit);
   const right = (props.pos ?? 'right') === 'right';
   const S = Math.round(Math.min(560, w * 0.29)), H2 = Math.round(S * 1.08);   // ThreeCanvas needs whole pixels

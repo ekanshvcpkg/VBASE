@@ -51,6 +51,6 @@ export default () => {
       { id: "snare", inst: "snare", role: "drum", notes: snare, gainDb: 2, send: 0.3 },
       { id: "lead", inst: "softPluck", role: "melody", notes: lead, gainDb: 2, opts: { decay: 0.5, bright: 5000, delay: (60 / BPM) * 0.75, feedback: 0.25, delayMix: 0.22 }, send: 0.25 },
     ],
-    fx: { duck: { by: "kick", parts: ["pad", "keys"], depth: 0.25, release: 0.26 }, tape: { wowCents: 4, wowHz: 0.35, flutterCents: 1, flutterHz: 6, drive: 1.1 } },
+    fx: { duck: { by: "kick", parts: ["pad", "keys"], depth: 0.12, release: 0.3 }, tape: { wowCents: 4, wowHz: 0.35, flutterCents: 1, flutterHz: 6, drive: 1.1 } },
   };
 };

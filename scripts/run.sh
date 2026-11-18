@@ -96,6 +96,9 @@ json.dump(m,open(p,'w'),indent=1)" "$W/master_edl.json"
   [[ -d "$W/proof" ]] && { mkdir -p "$W/remotion_app/public/proof"; cp "$W"/proof/* "$W/remotion_app/public/proof/"; }   # images for proof_grid / before_after
   CW=(); [[ -n "${CLONE_WORD:-}" ]] && CW=(--clone-word "$CLONE_WORD")
   python3 "$P/make_fx.py" --dir "$W" ${CREATOR_ROLE:+--role "$CREATOR_ROLE"} ${CW[@]+"${CW[@]}"}
+  # speaker cut-out (person.webm) so in-room elements sit behind them, and face-aware sides for those elements
+  "$VIDBASE_PY" "$P/person_matte.py" --dir "$W" 2>&1 | grep -vE "^W0000|^I0000|inference_feedback|TensorFlow|XNNPACK" || true
+  cp "$W/master_edl.json" "$W/remotion_app/src/master_edl.json"
   (cd "$W/remotion_app" && npx remotion render src/index.ts MainComposite "$W/final_render.mp4" \
      --gl=angle --codec=h264 --crf=18 --audio-codec=aac --audio-bitrate=192k --concurrency=4 --timeout=120000 2>&1 | grep -E "Encoded|rror" | tail -1)
   python3 "$SK/qc_report.py" --dir "$W" | python3 -c "import sys,json;d=json.load(sys.stdin);print('QC', 'PASS' if d.get('automated_pass') else 'CHECK', d.get('checks',{}).get('loudness'))" || true

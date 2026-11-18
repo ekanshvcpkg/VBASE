@@ -68,6 +68,8 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
   );
 };
 
+const BEHIND = new Set(['glass_card', 'glass_chips', 'mascot3d']);
+const isBehind = (c: any) => BEHIND.has(c.scene) && c.props?.behind !== false;   // props.behind = false keeps one in front
 export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
   const { fps } = useVideoConfig();
   const tNow = useFrame2() / fps;
@@ -77,7 +79,16 @@ export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
   return (
     <AbsoluteFill style={{ background: 'radial-gradient(120% 70% at 50% 15%, #23232b 0%, #0b0b0f 70%)' }}>
       <Speaker edl={edl} sceneCues={sceneCues}>
-        {cues.map((cue, idx) => cue.layout !== 'tracked' ? null : (
+        {/* in-room elements: footage -> element -> the speaker cut out on top (person.webm), so they sit BEHIND the speaker */}
+        {cues.map((cue, idx) => cue.layout !== 'tracked' || !isBehind(cue) ? null : (
+          <Sequence key={idx} from={Math.round(cue.timeline_start * fps)}
+            durationInFrames={Math.max(1, Math.round((cue.timeline_end - cue.timeline_start) * fps))} name={`behind ${idx}: ${cue.scene}`}>
+            <SceneLayer cue={cue as SceneCue} index={idx} brand={edl.brand} />
+          </Sequence>
+        ))}
+        {(edl as any).person_matte && <AbsoluteFill><OffthreadVideo src={staticFile('person.webm')} transparent muted /></AbsoluteFill>}
+        {/* objects held in the hand stay in front of the speaker */}
+        {cues.map((cue, idx) => cue.layout !== 'tracked' || isBehind(cue) ? null : (
           <Sequence key={idx} from={Math.round(cue.timeline_start * fps)}
             durationInFrames={Math.max(1, Math.round((cue.timeline_end - cue.timeline_start) * fps))} name={`tracked ${idx}: ${cue.scene}`}>
             <SceneLayer cue={cue as SceneCue} index={idx} brand={edl.brand} />
