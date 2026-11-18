@@ -37,7 +37,10 @@ for c in m.get("three_d_cues", []):
         if tiles: add("swish", s + 0.04, "soft", -8, "looks grid in")
         if tiles: add("chime", tiles[-1] + 0.05, "glint", -6, "the chosen look")
     elif sc == "mascot3d":
-        add("pop", s + 0.06, "pop", -5, "character card pops")
+        mode = c.get("props", {}).get("mode", "run")
+        if mode == "peek": add("pop", s + 0.3, "tiny", -11, "mascot peeks up")       # lands at the top of its outBack rise
+        elif mode == "run": add("swish", s + 0.25, "soft", -12, "mascot runs past")
+        else: add("pop", s + 0.06, "pop", -5, "character card pops")
     elif sc == "glass_card":
         add("pop", s + 0.06, "tiny", -6, "glass card pops")
         if c.get("props", {}).get("logo"): add("chime", s + 0.5, "bell", -9, "VBASE word lands")

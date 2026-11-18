@@ -216,3 +216,7 @@ If nothing in the catalog fits, for example a dashboard, a map, a spreadsheet, o
 **In-room elements sit BEHIND the speaker.** `glass_card`, `glass_chips` and `mascot3d` are drawn between the footage and
 a cut-out of the speaker (`person.webm`, made by `pipeline/person_matte.py`), and placed in the free wall beside the head
 (`props.place`, measured per cue). Never put an element on the face; `props.behind: false` or `props.pos_locked` override.
+
+**Mascot peeks** (`mascot3d` with `mode: "peek"`): the character pops up from a bottom corner behind the speaker, does one
+small act (`act`: `wave`, `look` at the viewer, `happy` squint with rosy cheeks, `hop`) and ducks down, about 2 s. Scatter
+3-4 across a video in the gaps between other pop-ups so it keeps coming back; `corner: "left"|"right"`.

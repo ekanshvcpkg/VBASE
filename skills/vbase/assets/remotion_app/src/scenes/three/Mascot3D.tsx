@@ -26,25 +26,38 @@ const Box: React.FC<{ p: [number, number, number]; s: [number, number, number]; 
   <mesh position={p}><boxGeometry args={s} />{m}</mesh>
 );
 
-const Critter: React.FC<{ t: number; color: string; run?: number }> = ({ t, color, run = 0 }) => {
+type Pose = { yaw?: number; tilt?: number; wave?: number; happy?: number; hop?: number };
+const Critter: React.FC<{ t: number; color: string; run?: number; pose?: Pose }> = ({ t, color, run = 0, pose }) => {
   const body = <meshPhysicalMaterial color={color} metalness={0.45} roughness={0.32} clearcoat={0.5} clearcoatRoughness={0.25} envMapIntensity={1.2} />;
   const eye = <meshStandardMaterial color="#FFF1DC" emissive="#FFD8A8" emissiveIntensity={2.2} />;
   const blink = (t % 2.6) > 2.45 ? 0.15 : 1;                 // a quick blink every ~2.6 s
   const step = (i: number) => (run ? 0.34 : 0.18) * Math.max(0, Math.sin(t * (run ? 17 : 9) + i * Math.PI));   // legs lift in turn
+  const happy = pose?.happy ?? 0;                             // happy eyes: squint into flat smiling slits
+  const eyeH = Math.max(0.12, blink * (1 - 0.75 * happy));
+  const wave = pose?.wave ?? 0;                               // right arm swings up and waves
+  const rot: [number, number, number] = run ? [0.12, -run * 0.75, -run * 0.12]
+    : pose ? [0.1, pose.yaw ?? 0, pose.tilt ?? 0]
+    : [0.18 + Math.sin(t * 1.3) * 0.05, Math.sin(t * 1.1) * 0.55, Math.sin(t * 0.9) * 0.04];
+  const y = run ? Math.abs(Math.sin(t * 8.5)) * 0.35 : pose ? (pose.hop ?? 0) : Math.sin(t * 2.2) * 0.12;
   return (
-    <group rotation={run ? [0.12, -run * 0.75, -run * 0.12] : [0.18 + Math.sin(t * 1.3) * 0.05, Math.sin(t * 1.1) * 0.55, Math.sin(t * 0.9) * 0.04]}
-      position={[0, run ? Math.abs(Math.sin(t * 8.5)) * 0.35 : Math.sin(t * 2.2) * 0.12, 0]}>
-      <Box p={[0, 0.25, 0]} s={[3.2, 2.1, 1.3]} m={body} />                       {/* body */}
-      <Box p={[-2.0, 0.05, 0]} s={[0.8, 0.7, 0.9]} m={body} />                    {/* arms */}
-      <Box p={[2.0, 0.05, 0]} s={[0.8, 0.7, 0.9]} m={body} />
-      <Box p={[0, 1.55, 0]} s={[0.25, 0.5, 0.25]} m={body} />                     {/* antenna */}
-      <mesh position={[0, 1.9, 0]}><sphereGeometry args={[0.2, 24, 24]} />{eye}</mesh>
-      <group scale={[1, blink, 1]} position={[0, 0.55, 0.66]}>
-        <Box p={[-0.7, 0, 0]} s={[0.3, 0.62, 0.05]} m={eye} />                    {/* eyes */}
-        <Box p={[0.7, 0, 0]} s={[0.3, 0.62, 0.05]} m={eye} />
+    <group rotation={rot} position={[0, y, 0]}>
+      <Box p={[0, 0.25, 0]} s={[3.2, 2.1, 1.3]} m={body} />
+      <Box p={[-2.0, 0.05, 0]} s={[0.8, 0.7, 0.9]} m={body} />
+      {/* right arm, pivoting at the shoulder so it can wave */}
+      <group position={[1.6, 0.25, 0]} rotation={[0, 0, wave * (1.9 + 0.35 * Math.sin(t * 14))]}>
+        <Box p={[0.4, -0.2, 0]} s={[0.8, 0.7, 0.9]} m={body} />
       </group>
+      <Box p={[0, 1.55, 0]} s={[0.25, 0.5, 0.25]} m={body} />
+      <mesh position={[0, 1.9, 0]}><sphereGeometry args={[0.2, 24, 24]} />{eye}</mesh>
+      <group position={[0, 0.55 + 0.12 * happy, 0.66]}>
+        <Box p={[-0.7, 0, 0]} s={[0.3 + 0.12 * happy, 0.62 * eyeH, 0.05]} m={eye} />
+        <Box p={[0.7, 0, 0]} s={[0.3 + 0.12 * happy, 0.62 * eyeH, 0.05]} m={eye} />
+      </group>
+      {happy > 0.2 && [-1.15, 1.15].map((x) => (            // rosy cheeks on a happy face
+        <mesh key={x} position={[x, 0.15, 0.66]}><boxGeometry args={[0.32, 0.16, 0.04]} /><meshStandardMaterial color="#FF8F80" emissive="#FF6F60" emissiveIntensity={0.6 * happy} transparent opacity={happy} /></mesh>
+      ))}
       {[-1.15, -0.4, 0.4, 1.15].map((x, i) => (
-        <Box key={i} p={[x, -1.15 + step(i), 0]} s={[0.36, 0.75, 0.6]} m={body} />   // legs
+        <Box key={i} p={[x, -1.15 + step(i), 0]} s={[0.36, 0.75, 0.6]} m={body} />
       ))}
     </group>
   );
@@ -78,7 +91,38 @@ const Runner: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
   );
 };
 
-export const Mascot3D: React.FC<SceneProps> = (sp) => (sp.props?.mode ?? 'run') === 'run' ? <Runner {...sp} /> : <MascotCard {...sp} />;
+const Peeker: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
+  // pops up from a bottom corner, does one small act, ducks back down. acts: wave | look | happy | hop
+  const W = Math.round(w), H = Math.round(h), FOV = 30, Z = 10;
+  const halfH = Z * Math.tan((FOV / 2) * Math.PI / 180), halfW = halfH * (W / H);
+  const right = (props.corner ?? 'right') === 'right', act = props.act ?? 'wave';
+  const up = prog(t, 0, 0.45, EASE.outBack), down = prog(t, dur - 0.4, 0.4, EASE.exit), k = Math.min(up, 1 - down);
+  const X = (right ? 1 : -1) * (halfW - 2.0), Y = mix(k, -halfH - 1.2, -halfH + 0.95);   // fully in frame, inside the corner
+  const a = prog(t, 0.35, 0.35, EASE.out) * (1 - down);       // the act eases in once it is up
+  const pose: Pose = {
+    yaw: (right ? -0.35 : 0.35) * (act === 'look' ? 1 - a : 1) + Math.sin(t * 1.6) * 0.08,   // turns to the viewer on 'look'
+    tilt: (act === 'happy' || act === 'look' ? 0.16 * a * Math.sin(t * 3) : 0),
+    wave: act === 'wave' ? a : 0,
+    happy: act === 'happy' ? a : act === 'wave' ? 0.6 * a : 0,
+    hop: act === 'hop' ? Math.abs(Math.sin((t - 0.35) * 7)) * 0.55 * a : 0,
+  };
+  return (
+    <ThreeCanvas width={W} height={H} gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
+      style={{ position: 'absolute', inset: 0, backgroundColor: 'transparent' }} camera={{ fov: FOV, position: [0, 0, Z], near: 0.1, far: 100 }}>
+      <ambientLight intensity={0.45} />
+      <directionalLight position={[-6, 4, 5]} intensity={2.0} color="#FFE6CC" />
+      <directionalLight position={[5, -1, 3]} intensity={0.5} color="#C3D5FF" />
+      <pointLight position={[X, Y + 1.5, 2.5]} intensity={6} distance={6} color="#FFB37A" />
+      <LocalEnvironment />
+      <group position={[X, Y, 0]} scale={0.34}><Critter t={t} color={props.color ?? '#C8693E'} pose={pose} /></group>
+    </ThreeCanvas>
+  );
+};
+
+export const Mascot3D: React.FC<SceneProps> = (sp) => {
+  const mode = sp.props?.mode ?? 'run';
+  return mode === 'run' ? <Runner {...sp} /> : mode === 'peek' ? <Peeker {...sp} /> : <MascotCard {...sp} />;
+};
 const MascotCard: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
   const inn = prog(t, 0, 0.55, EASE.outBack), out = prog(t, dur - 0.35, 0.35, EASE.exit);
   const right = (props.pos ?? 'right') === 'right';
