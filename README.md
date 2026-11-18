@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="review-room/assets/vbase-mark.svg" width="72" alt="VBASE">
+<img src="docs/images/vbase-logo.svg" width="72" alt="VBASE">
 
 # VBASE
 
