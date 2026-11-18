@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="VBASE">
+  <path d="M4 5 H20 V30 Z" fill="#EDEDED"/>
+  <path d="M20 5 H36 L20 30 Z" fill="#8F8F8F"/>
+  <rect x="4" y="34" width="32" height="3" rx="1.5" fill="#3A3A3A"/>
+  <rect x="4" y="34" width="13" height="3" rx="1.5" fill="#EDEDED"/>
+</svg>
