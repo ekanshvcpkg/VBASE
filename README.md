@@ -121,6 +121,7 @@ You can also just ask: *"edit ~/Downloads/take.mov with vbase"*.
 | `BRAND`, `LINE1`, `LINE2`, `TAGLINE`, `END1`, `END2`, `CTA`, `FOOT` | Words of the open and end card. |
 | `SFX=1` | Add procedural sound effects (off by default). |
 | `VBASE_GRADE=natural` | Keep the camera's own colours (no colour grade). |
+| `MUSIC_FILE=track.mp3` | Your own background music: starts very low, rises slowly, ducks under your voice (`MUSIC_GAIN` sets how light). |
 | `TAKEONE=0` | Skip the open and end card. |
 
 </details>

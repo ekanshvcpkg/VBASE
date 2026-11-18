@@ -7,6 +7,7 @@
 #   bash scripts/run.sh review  <video>    open the VBASE review room on the cuts (render does this automatically)
 #
 # Optional env for render:  ZOOM_WORD=zoom   CLONE_AT=<source s> CLONE_WORD=<word>   SFX=1   VBASE_GRADE=natural (camera colours)
+#                           MUSIC=1 [BGM_VOLUME=0.22]   ElevenLabs background music (needs ELEVENLABS_API_KEY)
 #                           BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   (Take One words)   TAKEONE=0 (skip Take One)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; VB="${VBASE_HOME:-$HOME/.vbase}"
@@ -80,7 +81,12 @@ json.dump(m,open(p,'w'),indent=1)" "$W/master_edl.json"
     "$HOME/.vidbase/dfvenv/bin/deepFilter" "$W/df/voice.wav" -o "$W/df/out" >/dev/null 2>&1
     ffmpeg -v error -y -i "$W/step1_raw_audio.mp4" -i "$W/df/out/voice_DeepFilterNet3.wav" -map 0:v -map 1:a -c:v copy -c:a aac -ar 48000 -ac 2 -b:a 192k -shortest "$W/step1_visual_cut.mp4"
   else cp "$W/step1_raw_audio.mp4" "$W/step1_visual_cut.mp4"; fi
-  python3 "$SK/master_audio.py" --dir "$W" >/dev/null
+  # MUSIC=1: an ElevenLabs instrumental from the EDL's music_prompt, looped, lowered and ducked under the voice
+  if [[ "${MUSIC:-0}" == 1 ]]; then
+    if [[ -n "${ELEVENLABS_API_KEY:-}" ]]; then node "$SK/generate_audio.mjs" --dir "$W" | tail -2
+    else echo "WARNING: MUSIC=1 but ELEVENLABS_API_KEY is not set (add it to ~/.vbase/env.sh); rendering without music"; fi
+  fi
+  python3 "$SK/master_audio.py" --dir "$W" ${BGM_VOLUME:+--bgm-volume "$BGM_VOLUME"} >/dev/null
   cp "$W/base_cut.mp4" "$W/base_cut_nofx.mp4"
   CL=(); [[ -n "${CLONE_AT:-}" && -n "${CLONE_WORD:-}" ]] && CL=(--clone-at "$CLONE_AT" --clone-word "$CLONE_WORD")
   "$VIDBASE_PY" "$P/fx_pass.py" --dir "$W" --source "$IN" --zoom-word "${ZOOM_WORD:-zoom}" ${CL[@]+"${CL[@]}"} 2>&1 | grep -E "^zoom|^frames|passed"

@@ -6,6 +6,7 @@
 # Env (all optional; the VBASE skill fills them from the video):
 #   BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   on-screen words      SFX=1   add procedural sound effects (off by default)
 #   OUT_NAME                                      file name of the cut (default: <video>-vbase.mp4)
+#   MUSIC_FILE=<mp3/wav> [MUSIC_GAIN=0.25 MUSIC_START=0]   your own background track, ducked under the voice
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$(cd "$1" && pwd)"; SRC="$2"; T="$W/takeone"
@@ -58,6 +59,20 @@ if [[ "${SFX:-0}" == 1 ]]; then
 else
   # voice only; the limiter keeps true peak under -1 dBTP
   ffmpeg -v error -y -i bed.wav -af "alimiter=limit=0.84:level=false:attack=2:release=60" -ar 48000 mix.wav
+fi
+# MUSIC_FILE: the creator's own track under the whole film. Starts very low, rises slowly, ducks under the voice
+# (sidechain), lifts a little under the end card, fades out. MUSIC_GAIN (default 0.25) sets how light it is.
+if [[ -n "${MUSIC_FILE:-}" && -f "${MUSIC_FILE}" ]]; then
+  B=$(python3 -c "import json;print(json.load(open('$W/master_edl.json'))['total_duration'])")
+  G="${MUSIC_GAIN:-0.25}"; MS="${MUSIC_START:-0}"; FO=$(python3 -c "print(round($D-2.2,3))")
+  ffmpeg -v error -y -i mix.wav -i "$MUSIC_FILE" -filter_complex "\
+[1:a]atrim=start=$MS:duration=$D,asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,\
+volume='$G*(0.3+0.7*pow(min(t/42\,1)\,1.5))*(1+0.35*clip((t-$B)/0.8\,0\,1))':eval=frame,\
+afade=t=in:d=1.0,afade=t=out:st=$FO:d=2.2[m];\
+[0:a]aformat=channel_layouts=stereo,asplit[v][key];\
+[m][key]sidechaincompress=threshold=0.035:ratio=5:attack=15:release=450[md];\
+[v][md]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.84:level=false[out]" -map "[out]" -ar 48000 mix_music.wav \
+  && mv mix_music.wav mix.wav && echo "music: $(basename "$MUSIC_FILE") under the film (gain $G, ducked)"
 fi
 mkdir -p cuts
 ffmpeg -v error -y -i open.mp4 -i "$F" -i endcard.mp4 -i mix.wav -filter_complex "[0:v]trim=start_frame=0:end_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[a];[1:v]trim=start_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[b];[2:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[c];[a][b][c]concat=n=3:v=1:a=0,fps=30[v]" \
