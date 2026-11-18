@@ -153,7 +153,8 @@ function drawEnd(u) {
   g.globalAlpha = clamp(a2, 0, 1); g.fillStyle = '#A1A1A1'; g.font = `500 52px ${SANS}`;
   g.fillText(CFG.end1, col, 486 + (1 - a2) * 22); g.fillText(CFG.end2, col, 552 + (1 - a2) * 22);
   // CTA: a white button, GitHub mark only when it points to GitHub
-  g.save(); g.globalAlpha = clamp(a3, 0, 1); const s3 = 0.92 + 0.08 * a3; g.translate(col, 610); g.scale(s3, s3);
+  const bp = CFG.buddyPress ? Math.exp(-Math.pow((u - CFG.buddyPress) / 0.08, 2)) : 0;   // the buddy presses it
+  g.save(); g.globalAlpha = clamp(a3, 0, 1); const s3 = (0.92 + 0.08 * a3) * (1 - 0.05 * bp); g.translate(col, 610 + 5 * bp); g.scale(s3, s3);
   const gh = /github/i.test(CFG.cta), tx = gh ? 104 : 40;
   g.font = `600 52px ${SANS}`; const pw = Math.max(300, tx + g.measureText(CFG.cta).width + 40);
   rr(0, 0, pw, 100, 14); g.fillStyle = '#EDEDED'; g.fill();

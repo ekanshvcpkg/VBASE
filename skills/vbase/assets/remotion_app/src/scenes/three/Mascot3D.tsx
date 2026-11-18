@@ -6,6 +6,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { THEME } from '../../lib/theme';
 import { EASE, mix, prog } from '../../lib/motion';
 import type { SceneProps } from '../types';
+import { BuddySprite, Pose } from './Buddy';
 
 // An original copper voxel character floating in a dark, starry card: pops in, sways, bobs,
 // blinks, steps its legs. Layout `tracked` (full frame); the card sits to one side of the speaker.
@@ -26,8 +27,8 @@ const Box: React.FC<{ p: [number, number, number]; s: [number, number, number]; 
   <mesh position={p}><boxGeometry args={s} />{m}</mesh>
 );
 
-type Pose = { yaw?: number; tilt?: number; wave?: number; happy?: number; hop?: number };
-const Critter: React.FC<{ t: number; color: string; run?: number; pose?: Pose }> = ({ t, color, run = 0, pose }) => {
+type CritterPose = { yaw?: number; tilt?: number; wave?: number; happy?: number; hop?: number };
+const Critter: React.FC<{ t: number; color: string; run?: number; pose?: CritterPose }> = ({ t, color, run = 0, pose }) => {
   const body = <meshPhysicalMaterial color={color} metalness={0.45} roughness={0.32} clearcoat={0.5} clearcoatRoughness={0.25} envMapIntensity={1.2} />;
   const eye = <meshStandardMaterial color="#FFF1DC" emissive="#FFD8A8" emissiveIntensity={2.2} />;
   const blink = (t % 2.6) > 2.45 ? 0.15 : 1;                 // a quick blink every ~2.6 s
@@ -64,26 +65,15 @@ const Critter: React.FC<{ t: number; color: string; run?: number; pose?: Pose }>
 };
 
 const Runner: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
-  // the character runs across the room at wall height (it passes behind the speaker: see person.webm)
-  const W = Math.round(w), H = Math.round(h), FOV = 30, Z = 10;
-  const halfH = Z * Math.tan((FOV / 2) * Math.PI / 180), halfW = halfH * (W / H);
-  const dir = props.from === 'right' ? -1 : 1;
+  // the buddy runs across the room at wall height (it passes behind the speaker: see person.webm)
+  const dir = props.from === 'right' ? -1 : 1, S = Math.round(h * 0.34);
   const k = Math.min(1, t / dur), ease = k < 0.12 ? 0.5 * k * k / 0.12 : k - 0.06;   // a quick start, then a steady run
-  const X = dir * mix(ease / 0.94, -halfW - 1.6, halfW + 1.6), Y = props.y ?? 0.75;
-  const sx = (X / halfW * 0.5 + 0.5) * W, sy = (0.5 - Y / (2 * halfH)) * H;
+  const x = w / 2 + dir * mix(ease / 0.94, -w / 2 - S * 0.5, w / 2 + S * 0.5), y = h * (props.yr ?? 0.33);
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <ThreeCanvas width={W} height={H} gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
-        style={{ position: 'absolute', inset: 0, backgroundColor: 'transparent' }} camera={{ fov: FOV, position: [0, 0, Z], near: 0.1, far: 100 }}>
-        <ambientLight intensity={0.45} />
-        <directionalLight position={[-6, 4, 5]} intensity={2.0} color="#FFE6CC" />
-        <directionalLight position={[5, -1, 3]} intensity={0.5} color="#C3D5FF" />
-        <pointLight position={[X, Y + 1.2, 2.5]} intensity={6} distance={6} color="#FFB37A" />
-        <LocalEnvironment />
-        <group position={[X, Y, 0]} scale={0.42}><Critter t={t} color={props.color ?? '#C8693E'} run={dir} /></group>
-      </ThreeCanvas>
+      <BuddySprite t={t} x={x} y={y} size={S} pose={{ run: dir, happy: 0.6 }} />
       {props.eyebrow && (
-        <div style={{ position: 'absolute', left: sx, top: sy - h * 0.2, transform: 'translateX(-50%)', padding: '8px 18px', borderRadius: 999,
+        <div style={{ position: 'absolute', left: x, top: y - S * 0.52, transform: 'translateX(-50%)', padding: '8px 18px', borderRadius: 999,
           background: 'rgba(10,10,12,0.78)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontFamily: THEME.font, fontSize: 30,
           fontWeight: 700, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{props.eyebrow}</div>
       )}
@@ -93,30 +83,21 @@ const Runner: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
 
 const Peeker: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
   // pops up from a bottom corner, does one small act, ducks back down. acts: wave | look | happy | hop
-  const W = Math.round(w), H = Math.round(h), FOV = 30, Z = 10;
-  const halfH = Z * Math.tan((FOV / 2) * Math.PI / 180), halfW = halfH * (W / H);
-  const right = (props.corner ?? 'right') === 'right', act = props.act ?? 'wave';
+  const right = (props.corner ?? 'right') === 'right', act = props.act ?? 'wave', S = Math.round(h * 0.4);
   const up = prog(t, 0, 0.45, EASE.outBack), down = prog(t, dur - 0.4, 0.4, EASE.exit), k = Math.min(up, 1 - down);
-  const X = (right ? 1 : -1) * (halfW - 2.0), Y = mix(k, -halfH - 1.2, -halfH + 0.95);   // fully in frame, inside the corner
+  const x = right ? w - S * 0.42 : S * 0.42, y = mix(k, h + S * 0.5, h - S * 0.3);
   const a = prog(t, 0.35, 0.35, EASE.out) * (1 - down);       // the act eases in once it is up
+  const land = Math.exp(-Math.pow((t - 0.42) / 0.09, 2));      // a little squash as it arrives
   const pose: Pose = {
-    yaw: (right ? -0.35 : 0.35) * (act === 'look' ? 1 - a : 1) + Math.sin(t * 1.6) * 0.08,   // turns to the viewer on 'look'
-    tilt: (act === 'happy' || act === 'look' ? 0.16 * a * Math.sin(t * 3) : 0),
+    yaw: (right ? -0.4 : 0.4) * (act === 'look' ? 1 - a : 1) + Math.sin(t * 1.6) * 0.06,   // turns to the viewer on 'look'
+    tilt: (act === 'happy' || act === 'look' ? 0.15 * a * Math.sin(t * 3) : 0),
     wave: act === 'wave' ? a : 0,
-    happy: act === 'happy' ? a : act === 'wave' ? 0.6 * a : 0,
-    hop: act === 'hop' ? Math.abs(Math.sin((t - 0.35) * 7)) * 0.55 * a : 0,
+    happy: act === 'happy' || act === 'hop' ? a : 0,
+    lookX: act === 'look' ? 0 : right ? -0.8 : 0.8,
+    hop: act === 'hop' ? Math.abs(Math.sin((t - 0.35) * 7)) * 0.5 * a : 0,
+    squash: 0.12 * land,
   };
-  return (
-    <ThreeCanvas width={W} height={H} gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
-      style={{ position: 'absolute', inset: 0, backgroundColor: 'transparent' }} camera={{ fov: FOV, position: [0, 0, Z], near: 0.1, far: 100 }}>
-      <ambientLight intensity={0.45} />
-      <directionalLight position={[-6, 4, 5]} intensity={2.0} color="#FFE6CC" />
-      <directionalLight position={[5, -1, 3]} intensity={0.5} color="#C3D5FF" />
-      <pointLight position={[X, Y + 1.5, 2.5]} intensity={6} distance={6} color="#FFB37A" />
-      <LocalEnvironment />
-      <group position={[X, Y, 0]} scale={0.34}><Critter t={t} color={props.color ?? '#C8693E'} pose={pose} /></group>
-    </ThreeCanvas>
-  );
+  return <BuddySprite t={t} x={x} y={y} size={S} pose={pose} />;
 };
 
 export const Mascot3D: React.FC<SceneProps> = (sp) => {

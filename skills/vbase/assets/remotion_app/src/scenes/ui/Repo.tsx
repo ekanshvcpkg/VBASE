@@ -1,7 +1,8 @@
 import React from 'react';
-import { EASE, beatAt, prog } from '../../lib/motion';
+import { EASE, beatAt, mix, prog } from '../../lib/motion';
 import { THEME } from '../../lib/theme';
 import { Screen, Cursor, CamKey, CurKey } from '../Screen';
+import { BuddySprite, UNIT } from '../three/Buddy';
 import type { SceneProps } from '../types';
 
 // A faithful code-host repository page (GitHub's dark palette and layout), shown flat and
@@ -100,7 +101,20 @@ export const Repo: React.FC<SceneProps> = ({ t, dur, props, beats, w, h }) => {
             </div>
           </div>
         </div>
-        <Cursor t={t} keys={cur} scale={1.2} />
+        {/* props.buddy (default on): the VBASE buddy walks up and presses Star itself, then cheers to the viewer */}
+        {props.buddy === false ? <Cursor t={t} keys={cur} scale={1.2} /> : (() => {
+          // no room beside the button inside the window, so it drops onto Star and stomps it: the landing is the click
+          const S = 230, ppu = S * UNIT;
+          const cx = starX + 38, cy = starY - 30 - 1.7 * ppu;        // feet on the button's top edge
+          const fall = prog(t, starAt - 0.42, 0.42, EASE.enter);
+          const land = Math.exp(-Math.pow((t - starAt - 0.03) / 0.08, 2));
+          const cheer = prog(t, starAt + 0.12, 0.25, EASE.outBack), turn = prog(t, starAt + 0.7, 0.35, EASE.inOut);
+          if (t < starAt - 0.42) return null;
+          return <BuddySprite t={t} x={cx} y={mix(fall, -S * 0.7, cy)} size={S} res={2.2} pose={{
+            yaw: mix(turn, -0.25, 0.05), lookX: 0, lookY: mix(turn, 0.6, 0), happy: cheer, armsUp: cheer * (1 - turn),
+            hop: Math.abs(Math.sin((t - starAt - 0.12) * 8)) * 0.4 * cheer * (1 - turn), wave: turn,
+            squash: 0.22 * land - 0.1 * Math.exp(-Math.pow((t - starAt + 0.08) / 0.06, 2)) }} />;
+        })()}
       </div>
     </Screen>
   );

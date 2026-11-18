@@ -44,6 +44,7 @@ for c in m.get("three_d_cues", []):
     elif sc == "glass_card":
         add("pop", s + 0.06, "tiny", -6, "glass card pops")
         if c.get("props", {}).get("logo"): add("chime", s + 0.5, "bell", -9, "VBASE word lands")
+        if c.get("props", {}).get("hug"): add("pop", s + 1.45, "cork", -10, "buddy hugs the card")
     elif sc in ("screen_video", "code", "terminal") and c.get("layout") == "split":
         add("swish", s + 0.2, "in", -9, f"{sc} window floats in")
     elif sc == "glass_chips":
@@ -54,6 +55,9 @@ for c in m.get("three_d_cues", []):
 # end card: the step back, then the button
 add("swish", E + 0.05, "soft", -8, "end card")
 add("press", E + 0.86, "confirm", -9, "end card button")
+if any(c.get("scene") == "mascot3d" for c in m.get("three_d_cues", [])):
+    add("pop", E + 1.39, "tiny", -9, "buddy lands on the end card")
+    add("press", E + 2.2, "confirm", -7, "buddy presses the button")
 
 # never two cues within 0.25 s: keep the earlier one
 cues.sort(key=lambda c: c["frame"]); kept = []

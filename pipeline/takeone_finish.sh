@@ -35,6 +35,7 @@ cfg = {"brand": env("BRAND", (ed.get("products") or ["VBASE"])[0] if ed.get("pro
        "tagline": env("TAGLINE", "Claude edits it."), "end1": env("END1", "Raw take in."), "end2": env("END2", "Edited video out."),
        "cta": env("CTA", "Star it on GitHub" if gh else "Follow for more"), "foot": env("FOOT", "Edited with VBASE"), "url": env("URL", f"github.com/{gh}" if gh else ""),
        "push": max(seg0.get("push", 0.03), 0.03), "shot1": seg0["timeline_end"] - seg0["timeline_start"],
+       "buddyPress": 2.2 if any(c.get("scene") == "mascot3d" for c in m.get("three_d_cues", [])) and os.environ.get("BUDDY_END", "1") == "1" else 0,
        "faceY": m.get("speaker_face_y_ratio", 0.35), "rawAt": round(seg0["source_start"], 2), "nRaw": 120, "nEdit": 120, "nLoop": 116}
 json.dump(cfg, open(out, "w"), indent=1); print("cfg:", cfg["brand"], "|", cfg["line2"].replace("\n", " "), "|", cfg["cta"])
 EOF
@@ -50,6 +51,19 @@ cd "$T"
 node "$TO/text-audit.mjs" | tail -1; node "$TO/gate.mjs" film.html | grep GATE
 START=0 END=4.0 SUB=4 node export.mjs 30 open.mp4
 START=4.0 END=8.5 SUB=1 node export.mjs 30 endcard.mp4      # no subframe blur on the step-back: it echoed
+# the buddy on the end card: measure the CTA button, render the buddy pressing it (alpha), lay it over the card
+BP=$(python3 -c "import json;print(json.load(open('cfg.json')).get('buddyPress',0))"); rm -f buddy_end.webm
+if [[ "$BP" != 0 && -d "$W/remotion_app" ]]; then
+  ffmpeg -v error -y -ss 1.9 -i endcard.mp4 -frames:v 1 -f rawvideo -pix_fmt gray btn.gray
+  BTN=$(python3 -c "
+import numpy as np; a=np.fromfile('btn.gray',np.uint8).reshape(1080,1920); r=a[520:780,1000:]>225
+ys,xs=np.where(r); print('[%d,%d,%d,%d]'%(xs.min()+1000,ys.min()+520,xs.max()+1000,ys.max()+520) if len(xs)>500 else '')")
+  rm -f btn.gray
+  if [[ -n "$BTN" ]]; then
+    ( cd "$W/remotion_app" && npx remotion render src/index.ts BuddyEnd "$T/buddy_end.webm" --codec vp9 --image-format png --pixel-format yuva420p \
+        --props "{\"btn\":$BTN,\"press\":$BP}" --log error ) && echo "buddy: end card button $BTN, press at ${BP}s"
+  fi
+fi
 
 D=$(python3 -c "import json;print(round(json.load(open('$W/master_edl.json'))['total_duration']+4.5,3))")
 ffmpeg -v error -y -i "$F" -vn -ar 48000 -ac 2 body.wav
@@ -79,7 +93,8 @@ loudnorm=I=$ML:LRA=3:TP=-8,aresample=48000,afade=t=in:d=2.0,afade=t=out:st=$FO:d
   && mv mix_music.wav mix.wav && echo "music: $(basename "$MUSIC_FILE") under the film at a steady $ML LUFS"
 fi
 mkdir -p cuts
-ffmpeg -v error -y -i open.mp4 -i "$F" -i endcard.mp4 -i mix.wav -filter_complex "[0:v]trim=start_frame=0:end_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[a];[1:v]trim=start_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[b];[2:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[c];[a][b][c]concat=n=3:v=1:a=0,fps=30[v]" \
+if [[ -f buddy_end.webm ]]; then BIN=(-c:v libvpx-vp9 -i buddy_end.webm); ECARD="[2:v][4:v]overlay=0:0:shortest=1,"; else BIN=(); ECARD="[2:v]"; fi
+ffmpeg -v error -y -i open.mp4 -i "$F" -i endcard.mp4 -i mix.wav ${BIN[@]+"${BIN[@]}"} -filter_complex "[0:v]trim=start_frame=0:end_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[a];[1:v]trim=start_frame=120,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[b];${ECARD}setpts=PTS-STARTPTS,format=yuv420p,setsar=1[c];[a][b][c]concat=n=3:v=1:a=0,fps=30[v]" \
   -map "[v]" -map 3:a -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -c:a aac -b:a 192k -ar 48000 -movflags +faststart -shortest "cuts/$OUT"
 node "$TO/audio-check.mjs" "cuts/$OUT" | tail -1
 echo "cut: $T/cuts/$OUT"

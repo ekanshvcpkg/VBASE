@@ -220,3 +220,9 @@ a cut-out of the speaker (`person.webm`, made by `pipeline/person_matte.py`), an
 **Mascot peeks** (`mascot3d` with `mode: "peek"`): the character pops up from a bottom corner behind the speaker, does one
 small act (`act`: `wave`, `look` at the viewer, `happy` squint with rosy cheeks, `hop`) and ducks down, about 2 s. Scatter
 3-4 across a video in the gaps between other pop-ups so it keeps coming back; `corner: "left"|"right"`.
+
+**The VBASE buddy takes part** (`scenes/three/Buddy.tsx`, a soft clay critter with glossy eyes, a smile and blush;
+`<BuddySprite>` places it in pixels inside any scene):
+- `glass_card` with `props.hug: true`: it pops up from behind the card's top edge, arms up, then hugs the card (hands over the edge, ^ ^ eyes, a heart).
+- `repo`: it drops onto Star on the `star` beat and stomps it (the landing is the click), cheers, then waves at the viewer (`props.buddy: false` brings the cursor back).
+- end card: when the video has any `mascot3d` cue, it lands beside the CTA button, presses it at 2.2 s (the button dips), and waves (`BUDDY_END=0` to skip).

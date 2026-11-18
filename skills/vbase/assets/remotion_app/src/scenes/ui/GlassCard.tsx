@@ -2,6 +2,7 @@ import React from 'react';
 import { THEME } from '../../lib/theme';
 import { EASE, mix, prog } from '../../lib/motion';
 import type { SceneProps } from '../types';
+import { BuddySprite, Heart, UNIT } from '../three/Buddy';
 
 // A frosted-glass title card that pops over the footage on a key line: an eyebrow pill, a line,
 // then a big accent line whose words land one by one. Layout `tracked` (drawn at full frame).
@@ -20,13 +21,25 @@ export const GlassCard: React.FC<SceneProps> = ({ t, dur, props, accent, w, h })
   const cw = Math.min(760, w * 0.4);
   // props.place (from person_matte.py): the free wall beside the speaker's head; the card fits inside it
   const pl = props.place, fit = pl ? Math.min(1, pl.w / cw) : 1;
-  const pos = pl ? { left: left ? pl.x : pl.x + pl.w - cw * fit, top: pl.y } : { [left ? 'left' : 'right']: w * 0.04, top: h * 0.43 };
-  return (
+  // props.hug: the buddy pops up from behind the card's top edge and hugs it (the card sits a little lower to make room)
+  const hugOn = !!props.hug;
+  const cardL = pl ? (left ? pl.x : pl.x + pl.w - cw * fit) : left ? w * 0.04 : w * 0.96 - cw;
+  const cardT = pl ? (hugOn ? Math.max(pl.y, h * 0.25) : pl.y) : h * 0.43;
+  const pos = { left: cardL, top: cardT };
+  const S = Math.round(cw * fit * 0.8), ppu = S * UNIT;
+  const rise = prog(t, 0.8, 0.45, EASE.outBack) * (1 - prog(t, dur - 0.75, 0.35, EASE.exit));
+  const hug = prog(t, 1.25, 0.3, EASE.outBack) * (1 - prog(t, dur - 0.8, 0.25, EASE.inOut));
+  const bx = cardL + cw * fit * 0.74, by = cardT - 0.45 * ppu + (1 - rise) * 2.7 * ppu;
+  const top = by - S / 2, edge = cardT - top;                    // the card's top edge inside the sprite
+  const pose = { armsUp: prog(t, 0.85, 0.3, EASE.out) * (1 - prog(t, 1.2, 0.2, EASE.inOut)), hug, happy: prog(t, 1.3, 0.2, EASE.out),
+    tilt: 0.1 * hug * Math.sin((t - 1.3) * 3.2), squash: 0.1 * Math.exp(-Math.pow((t - 1.45) / 0.1, 2)) };
+  const squish = 1 - 0.018 * Math.exp(-Math.pow((t - 1.45) / 0.12, 2));
+  const card = (
     <div style={{ position: 'absolute', ...pos, width: cw, boxSizing: 'border-box', padding: '30px 38px 36px',
       borderRadius: 30, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(22px) saturate(1.4)', WebkitBackdropFilter: 'blur(22px) saturate(1.4)',
       border: '1.5px solid rgba(255,255,255,0.85)', boxShadow: '0 30px 70px -20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.9)',
       fontFamily: THEME.font, opacity: Math.min(1, inn * 1.4) * (1 - out),
-      transform: `translateY(${(1 - inn) * 40 - out * 20}px) scale(${fit * mix(Math.min(inn, 1), 0.9, 1) * (1 - out * 0.04)})`, transformOrigin: pl ? 'top left' : left ? '20% 80%' : '80% 80%' }}>
+      transform: `translateY(${(1 - inn) * 40 - out * 20}px) scale(${fit * squish * mix(Math.min(inn, 1), 0.9, 1) * (1 - out * 0.04)})`, transformOrigin: pl ? 'top left' : left ? '20% 80%' : '80% 80%' }}>
       {props.eyebrow && (
         <div style={{ display: 'inline-block', padding: '8px 20px', borderRadius: 999, border: `2px solid ${A}`, color: A, fontSize: 26, fontWeight: 700,
           letterSpacing: '0.12em', textTransform: 'uppercase', opacity: prog(t, 0.15, 0.3, EASE.out) }}>{props.eyebrow}</div>
@@ -41,5 +54,15 @@ export const GlassCard: React.FC<SceneProps> = ({ t, dur, props, accent, w, h })
         })}
       </div>
     </div>
+  );
+  if (!hugOn) return card;
+  return (
+    <>
+      {/* body behind the card, cut at its top edge; then the card; then the arms over it */}
+      {rise > 0.01 && <BuddySprite t={t} x={bx} y={by} size={S} pose={{ ...pose, only: 'body' }} style={{ clipPath: `inset(0 0 ${Math.max(0, S - edge)}px 0)` }} />}
+      {card}
+      {rise > 0.01 && <BuddySprite t={t} x={bx} y={by} size={S} pose={{ ...pose, only: 'arms' }} style={{ clipPath: `inset(0 0 ${Math.max(0, S - edge - hug * 0.95 * ppu)}px 0)` }} />}
+      <Heart t={t - 1.5} x={bx + 0.9 * ppu} y={by - 2.0 * ppu} />
+    </>
   );
 };
