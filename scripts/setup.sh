@@ -43,7 +43,7 @@ step "Captions, hand tracking, segmentation, denoise → $VH"
 "$VH/venv/bin/python" -c "import whisper, mediapipe" 2>/dev/null && ok "whisper + mediapipe" || miss "whisper + mediapipe" "bash skills/vbase/scripts/setup_env.sh"
 SEG="$VH/models/selfie_multiclass.tflite"
 [[ -s "$SEG" || $CHECK == 1 ]] || curl -fsSL -o "$SEG" https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite
-# Robust Video Matting (MIT): the clean speaker cut-out that lets screens and cards sit behind them
+# Robust Video Matting (GPL-3.0, downloaded from its own release, not redistributed): the clean speaker cut-out that lets screens and cards sit behind them
 RVM="$VH/models/rvm_mobilenetv3_fp32.torchscript"
 [[ -s "$RVM" || $CHECK == 1 ]] || curl -fsSL -o "$RVM" https://github.com/PeterL1n/RobustVideoMatting/releases/download/v1.0.0/rvm_mobilenetv3_fp32.torchscript
 [[ -s "$SEG" ]] && ok "segmentation model" || miss "segmentation model"
