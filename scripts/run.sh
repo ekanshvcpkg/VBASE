@@ -95,7 +95,10 @@ json.dump(m,open(p,'w'),indent=1)" "$W/master_edl.json"
   python3 "$SK/qc_report.py" --dir "$W" | python3 -c "import sys,json;d=json.load(sys.stdin);print('QC', 'PASS' if d.get('automated_pass') else 'CHECK', d.get('checks',{}).get('loudness'))" || true
   "$PY" "$P/export_otio.py" "$W" "$IN" 2>/dev/null | grep -v objc || true
   OUTV="$W/final_render.mp4"
-  if [[ "${TAKEONE:-1}" == 1 ]]; then bash "$P/takeone_finish.sh" "$W" "$IN" && OUTV="$W/takeone/cuts/$NAME-vbase.mp4"; fi
+  if [[ "${TAKEONE:-1}" == 1 ]]; then
+    if bash "$P/takeone_finish.sh" "$W" "$IN"; then OUTV="$W/takeone/cuts/$NAME-vbase.mp4"
+    else echo "WARNING: Take One open/end card FAILED (see the audit above); delivering the edit without them"; fi
+  fi
   cp "$OUTV" "$(dirname "$IN")/$NAME-vbase.mp4"; cp "$W/timeline.otio" "$(dirname "$IN")/$NAME-vbase.otio" 2>/dev/null || true
   echo "DONE: $(dirname "$IN")/$NAME-vbase.mp4"
   [[ "${REVIEW:-1}" == 1 ]] && start_room      # REVIEW=0 to skip opening the website

@@ -31,7 +31,7 @@ env = lambda k, d: os.environ.get(k) or d
 cfg = {"brand": env("BRAND", (ed.get("products") or ["VBASE"])[0] if ed.get("products") and ed["products"][0] != "Claude" else "VBASE"),
        "line1": env("LINE1", "One raw take."), "line2": env("LINE2", "Claude added\nthe ball." if held else "Claude did\nthe edit."),
        "tagline": env("TAGLINE", "Claude edits it."), "end1": env("END1", "Raw take in."), "end2": env("END2", "Edited video out."),
-       "cta": env("CTA", "Star it on GitHub" if gh else "Follow for more"), "foot": env("FOOT", "Edited with VBASE"),
+       "cta": env("CTA", "Star it on GitHub" if gh else "Follow for more"), "foot": env("FOOT", "Edited with VBASE"), "url": env("URL", f"github.com/{gh}" if gh else ""),
        "push": max(seg0.get("push", 0.03), 0.03), "shot1": seg0["timeline_end"] - seg0["timeline_start"],
        "faceY": m.get("speaker_face_y_ratio", 0.35), "rawAt": round(seg0["source_start"], 2), "nRaw": 120, "nEdit": 120, "nLoop": 116}
 json.dump(cfg, open(out, "w"), indent=1); print("cfg:", cfg["brand"], "|", cfg["line2"].replace("\n", " "), "|", cfg["cta"])

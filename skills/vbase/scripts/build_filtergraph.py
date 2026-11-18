@@ -11,7 +11,9 @@ Usage: build_filtergraph.py --dir $EDIT_DIR [--input SRC] [--run] [--preset fast
 import argparse, json, os, re, subprocess, sys
 
 GRADES = {
-    "default":   "eq=contrast=1.08:brightness=0.02:saturation=1.18,unsharp=5:5:0.8:3:3:0.4",
+    # neutral, clean skin: pull the warm/yellow cast out of shadows, mids and highlights, lift exposure a touch,
+    # keep saturation just under 1 (the old +18% saturation turned skin yellow)
+    "default":   "colorbalance=rs=-0.03:bs=0.04:rm=-0.06:gm=-0.01:bm=0.06:rh=-0.04:bh=0.05,eq=contrast=1.05:brightness=0.045:saturation=0.9:gamma=1.06,unsharp=5:5:0.6:3:3:0.3",
     "cinematic": "eq=contrast=1.05:brightness=0.0:saturation=0.95:gamma=0.98,unsharp=5:5:0.4:3:3:0.2",
 }
 

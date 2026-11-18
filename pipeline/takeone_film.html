@@ -74,7 +74,7 @@ const bez = (x1, y1, x2, y2) => (x) => { let lo = 0, hi = 1, u = x;
   return 3 * y1 * u * (1 - u) ** 2 + 3 * y2 * u * u * (1 - u) + u ** 3; };
 const EASE_OUT = bez(0.16, 1, 0.3, 1);
 // per-video values come from cfg.json (written by takeone_finish.sh from setup.json + master_edl.json)
-let CFG = { brand: 'VBASE', line1: 'One raw take.', line2: 'Claude did\nthe edit.', tagline: 'Claude edits it.', end1: 'Raw take in.', end2: 'Edited video out.', cta: 'Star it on GitHub', foot: 'A Claude Code plugin', push: 0.035, shot1: 6.9333, faceY: 0.35, rawAt: 0, nRaw: 120, nEdit: 120, nLoop: 116 };
+let CFG = { brand: 'VBASE', line1: 'One raw take.', line2: 'Claude did\nthe edit.', tagline: 'Claude edits it.', end1: 'Raw take in.', end2: 'Edited video out.', cta: 'Star it on GitHub', foot: 'A Claude Code plugin', url: '', push: 0.035, shot1: 6.9333, faceY: 0.35, rawAt: 0, nRaw: 120, nEdit: 120, nLoop: 116 };
 let PUSH, SHOT1, FACE_Y;
 
 function drawRaw(t) {
@@ -108,56 +108,65 @@ function drawOpen(t) {
   // the name, in the free wall space top-left, while the film keeps playing (no stop for a logo card)
   if (t >= 2.55 && t < 4.0) {
     const k = clamp(Spring.unit(t - 2.55, 'heavy'), 0, 1.05), k2 = clamp(Spring.unit(t - 2.65, 'heavy'), 0, 1.05);
-    const out = clamp((t - 3.7) / 0.27, 0, 1), a = clamp(k, 0, 1) * (1 - out), dy = (1 - k) * 26 - out * 20;
-    g.save(); g.font = `700 92px ${SANS}`; const nW = g.measureText(CFG.brand).width; g.font = `500 38px ${SANS}`; const tW = g.measureText(CFG.tagline).width;
+    const out = clamp((t - 3.74) / 0.24, 0, 1), a = clamp(k, 0, 1) * (1 - out), dy = (1 - k) * 26 - out * 20;
+    g.save(); g.font = `700 92px ${SANS}`; const nW = g.measureText(CFG.brand).width; g.font = `500 48px ${SANS}`; const tW = g.measureText(CFG.tagline).width;
     const L = 84, cw = Math.max(L + 26 + nW, tW) + 64, x = 74, y = 92;
-    card(x, y + dy, cw, 196, a);
+    card(x, y + dy, cw, 212, a);
     g.globalAlpha = a; g.translate(x + 32, y + 28 + dy); drawMark(L); g.restore();
     g.save(); g.globalAlpha = a; g.fillStyle = '#fff'; g.font = `700 92px ${SANS}`; g.textBaseline = 'alphabetic';
     g.fillText(CFG.brand, x + 32 + L + 26, y + 108 + dy);
-    g.globalAlpha = clamp(k2, 0, 1) * (1 - out); g.fillStyle = 'rgba(255,255,255,0.82)'; g.font = `500 38px ${SANS}`;
-    g.fillText(CFG.tagline, x + 34, y + 168 + dy); g.restore();
+    g.globalAlpha = clamp(k2, 0, 1) * (1 - out); g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = `500 48px ${SANS}`;
+    g.fillText(CFG.tagline, x + 34, y + 180 + dy); g.restore();
   }
   grain(t, 0.02);
 }
 
 function drawEnd(u) {
-  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  // VBASE theme: black ground, hairline borders, white type, one soft glow (the review room's look)
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W * 0.72, H * 0.35, 0, W * 0.72, H * 0.35, W * 0.55);
+  glow.addColorStop(0, 'rgba(255,255,255,0.07)'); glow.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,0.06)'; for (let gx = 40; gx < W; gx += 48) for (let gy = 40; gy < H; gy += 48) g.fillRect(gx, gy, 2, 2);
   // the last frame of the edit steps back into a player
-  const k = clamp(Spring.unit(u, 'heavy'), 0, 1.03);   // a slow, weighty step back
-  const P = { x: 110, y: 262, w: 900, h: 506 };
-  const x = P.x * k, y = P.y * k, w = W + (P.w - W) * k, h = H + (P.h - H) * k, rad = 26 * clamp(k, 0, 1);
-  g.save(); g.shadowColor = `rgba(40,30,20,${0.28 * clamp(k, 0, 1)})`; g.shadowBlur = 60; g.shadowOffsetY = 24;
+  const k = clamp(Spring.unit(u, 'heavy'), 0, 1.03);
+  const P = { x: 100, y: 272, w: 880, h: 495 };
+  const x = P.x * k, y = P.y * k, w = W + (P.w - W) * k, h = H + (P.h - H) * k, rad = 20 * clamp(k, 0, 1);
+  g.save(); g.shadowColor = `rgba(0,0,0,${0.6 * clamp(k, 0, 1)})`; g.shadowBlur = 70; g.shadowOffsetY = 30;
   rr(x, y, w, h, rad); g.fillStyle = '#000'; g.fill(); noShadow(); g.clip();
   g.drawImage(LAST, x, y, w, h);
-  // ... then replays the ball shot (the person comes back at the end)
   const lu = u - 0.4;
-  if (lu > 0.3) cover(frameOf(LOOP, lu - 0.3), x, y, w, h);   // a clean cut inside the player once it has settled (a crossfade double-exposed two shots)
+  if (lu > 0.3) cover(frameOf(LOOP, lu - 0.3), x, y, w, h);   // a clean cut inside the player once it has settled
   g.restore();
-  // right column: name, line, where to get it, all within the first second
-  const col = 1100;
-  // the column waits until the player has stepped clear of it (~0.35 s)
-  const a1 = clamp(Spring.unit(u - 0.55, 'heavy'), 0, 1.05), a2 = clamp(Spring.unit(u - 0.7, 'heavy'), 0, 1.05);
+  g.save(); g.globalAlpha = clamp(k, 0, 1); g.strokeStyle = '#2E2E2E'; g.lineWidth = 2; rr(x, y, w, h, rad); g.stroke(); g.restore();
+  // right column: logo + name, line, where to get it
+  const col = 1080, a1 = clamp(Spring.unit(u - 0.55, 'heavy'), 0, 1.05), a2 = clamp(Spring.unit(u - 0.7, 'heavy'), 0, 1.05);
   const a3 = clamp(Spring.unit(u - 0.85, 'snappy'), 0, 1.1), a4 = clamp(Spring.unit(u - 1.0, 'heavy'), 0, 1.05);
   g.textBaseline = 'alphabetic'; g.textAlign = 'left';
-  g.globalAlpha = clamp(a1, 0, 1); g.fillStyle = INK; g.font = `700 150px ${SANS}`;
-  g.fillText(CFG.brand, col, 430 + (1 - a1) * 36);
-  const nW = g.measureText(CFG.brand).width; g.fillStyle = ACCENT; g.beginPath(); g.arc(col + nW + 26, 418 + (1 - a1) * 36, 15 * clamp(a1, 0, 1), 0, 7); g.fill();
-  g.globalAlpha = clamp(a2, 0, 1); g.fillStyle = SUB; g.font = `600 56px ${SERIF}`;
-  g.fillText(CFG.end1, col, 520 + (1 - a2) * 26); g.fillText(CFG.end2, col, 590 + (1 - a2) * 26);
-  // CTA pill
-  g.save(); g.globalAlpha = clamp(a3, 0, 1); const s3 = 0.9 + 0.1 * a3;
-  g.translate(col, 650); g.scale(s3, s3);
-  // the GitHub mark only when the button really points to GitHub; the pill fits its words
-  const gh = /github/i.test(CFG.cta), tx = gh ? 112 : 44;
-  g.font = `600 50px ${SANS}`; const pw = Math.max(320, tx + g.measureText(CFG.cta).width + 44);
-  rr(0, 0, pw, 108, 54); g.fillStyle = INK; g.fill();
-  if (gh) { g.save(); g.translate(30, 22); g.scale(3.75, 3.75); g.fillStyle = '#fff'; g.fill(GH); g.restore(); }
-  g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(CFG.cta, tx, 56); g.restore();
-  g.globalAlpha = clamp(a4, 0, 1); g.fillStyle = SUB; g.font = `500 50px ${SANS}`; g.textBaseline = 'alphabetic';
-  g.fillText(CFG.foot, col, 840 + (1 - a4) * 20);
+  // logo tile
+  const T = 116, ty = 262 + (1 - a1) * 30;
+  g.save(); g.globalAlpha = clamp(a1, 0, 1);
+  const tg = g.createLinearGradient(0, ty, 0, ty + T); tg.addColorStop(0, '#1C1C1E'); tg.addColorStop(1, '#050505');
+  rr(col, ty, T, T, 28); g.fillStyle = tg; g.fill(); g.strokeStyle = '#3A3A3A'; g.lineWidth = 2; g.stroke();
+  g.translate(col + 22, ty + 20); drawMark(T - 44); g.restore();
+  g.globalAlpha = clamp(a1, 0, 1); g.fillStyle = '#EDEDED'; g.font = `700 128px ${SANS}`;
+  g.fillText(CFG.brand, col + T + 34, ty + 106);
+  g.globalAlpha = clamp(a2, 0, 1); g.fillStyle = '#A1A1A1'; g.font = `500 52px ${SANS}`;
+  g.fillText(CFG.end1, col, 486 + (1 - a2) * 22); g.fillText(CFG.end2, col, 552 + (1 - a2) * 22);
+  // CTA: a white button, GitHub mark only when it points to GitHub
+  g.save(); g.globalAlpha = clamp(a3, 0, 1); const s3 = 0.92 + 0.08 * a3; g.translate(col, 610); g.scale(s3, s3);
+  const gh = /github/i.test(CFG.cta), tx = gh ? 104 : 40;
+  g.font = `600 52px ${SANS}`; const pw = Math.max(300, tx + g.measureText(CFG.cta).width + 40);
+  rr(0, 0, pw, 100, 14); g.fillStyle = '#EDEDED'; g.fill();
+  if (gh) { g.save(); g.translate(30, 22); g.scale(3.5, 3.5); g.fillStyle = '#0A0A0A'; g.fill(GH); g.restore(); }
+  g.fillStyle = '#0A0A0A'; g.textBaseline = 'middle'; g.fillText(CFG.cta, tx, 52); g.restore();
+  // repo address and the product line
+  g.globalAlpha = clamp(a4, 0, 1); g.textBaseline = 'alphabetic';
+  if (CFG.url) { g.fillStyle = '#8A8A8A'; g.font = `500 46px ${MONO}`; g.fillText(CFG.url, col, 786 + (1 - a4) * 16); }
+  g.font = `500 46px ${SANS}`; const fw = g.measureText(CFG.foot).width;
+  rr(col, 828 + (1 - a4) * 16, fw + 48, 72, 36); g.strokeStyle = '#2E2E2E'; g.lineWidth = 2; g.stroke();
+  g.fillStyle = '#A1A1A1'; g.fillText(CFG.foot, col + 24, 879 + (1 - a4) * 16);
   g.globalAlpha = 1;
-  grain(u + 100, 0.03);
+  grain(u + 100, 0.025);
 }
 
 window.renderFrame = (t) => {
