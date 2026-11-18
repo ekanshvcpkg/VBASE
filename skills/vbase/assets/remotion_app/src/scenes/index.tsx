@@ -64,7 +64,7 @@ export const layoutBox = (layout: Layout, W: number, H: number): Box => {
 /** How strongly a cue's layout is affecting the speaker video right now (0..1). */
 export const layoutWeight = (cue: SceneCue, t: number) => {
   const a = cue.timeline_start, b = cue.timeline_end;
-  if (cue.layout === 'broll') return t >= a && t < b ? 1 : 0; // b-roll is a hard cut, in and out
+  if (cue.layout === 'broll') return Math.min(prog(t, a - 0.05, 0.35, EASE.out), 1 - prog(t, b - 0.35, 0.35, EASE.inOut)); // eased: a hard switch read as a jolt
   return Math.min(prog(t, a - 0.05, 0.5, EASE.out), 1 - prog(t, b - 0.4, 0.4, EASE.inOut));
 };
 

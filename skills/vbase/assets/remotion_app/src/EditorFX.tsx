@@ -29,8 +29,9 @@ export const cameraAt = (t: number, W: number) => {
   let scale = 1, x = 0, y = 0, rot = 0, blurX = 0, blur = 0, bright = 1;
   for (const p of FX.punches) {
     if (t < p.t || t >= p.until) continue;
-    // slam in over ~3 frames, then a slow creep while held; the next cut resets it
-    scale *= 1 + p.amt * prog(t, p.t, 0.1, EASE.out) + 0.012 * (t - p.t);
+    // ease in like a camera operator, hold, ease back out before the cut (never a snap, never a reset on the cut)
+    const k = Math.min(prog(t, p.t - 0.15, 0.6, EASE.inOut), 1 - prog(t, p.until - 0.65, 0.6, EASE.inOut));
+    scale *= 1 + p.amt * k;
   }
   for (const s of FX.shakes) {
     if (t < s.t || t > s.t + s.dur) continue;

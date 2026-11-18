@@ -53,6 +53,17 @@ EOF
   ;;
 render)
   python3 "$SK/finalize_edl.py" --dir "$W"
+  # smooth camera: the same framing on every shot (alternating punch-ins and per-shot push resets read as jitter at cuts)
+  [[ "${SMOOTH:-1}" == 1 ]] && python3 -c "import json,sys;p=sys.argv[1];m=json.load(open(p))
+for s in m['keep_segments']: s['zoom']=1.0; s['push']=0.0
+cuts=[s['timeline_start'] for s in m['keep_segments'][1:]]; cues=sorted(m.get('three_d_cues',[]),key=lambda c:c['timeline_start'])
+for i,c in enumerate(cues):   # a cut must never show through a full-frame panel's fade: hold the panel 0.45 s past it
+  if c.get('layout')!='broll': continue
+  nxt=cues[i+1]['timeline_start']-0.05 if i+1<len(cues) else m['total_duration']
+  for k in cuts:
+    if c['timeline_end']-0.45<k<c['timeline_end']+0.05: c['timeline_end']=round(min(k+0.45,nxt),3)
+    if c['timeline_start']-0.05<k<c['timeline_start']+0.4: c['timeline_start']=round(max(k-0.45,0),3)
+json.dump(m,open(p,'w'),indent=1)" "$W/master_edl.json"
   # the builder reports which filtergraph-file flag this ffmpeg understands (-/filter_complex on 7.1+)
   FLAG=$(python3 "$SK/build_filtergraph.py" --dir "$W" | python3 -c "import sys,json;print(json.load(sys.stdin).get('flag','-filter_complex_script'))")
   ffmpeg -v error -y -i "$IN" $FLAG "$W/filter_complex.txt" -map "[outv]" -map "[outa]" \
@@ -68,7 +79,7 @@ render)
   "$VIDBASE_PY" "$P/fx_pass.py" --dir "$W" --source "$IN" --zoom-word "${ZOOM_WORD:-zoom}" ${CL[@]+"${CL[@]}"} 2>&1 | grep -E "^zoom|^frames|passed"
   cp "$W/base_cut_fx.mp4" "$W/base_cut.mp4"
   "$VIDBASE_PY" "$SK/track_hands.py" --dir "$W" >/dev/null 2>&1 || true
-  bash "$SK/bootstrap_remotion.sh" "$W" | tail -1
+  REFRESH_SRC=1 bash "$SK/bootstrap_remotion.sh" "$W" | tail -1     # always pick up the plugin's current scenes
   [[ -d "$W/proof" ]] && { mkdir -p "$W/remotion_app/public/proof"; cp "$W"/proof/* "$W/remotion_app/public/proof/"; }   # images for proof_grid / before_after
   CW=(); [[ -n "${CLONE_WORD:-}" ]] && CW=(--clone-word "$CLONE_WORD")
   python3 "$P/make_fx.py" --dir "$W" ${CREATOR_ROLE:+--role "$CREATOR_ROLE"} ${CW[@]+"${CW[@]}"}

@@ -63,11 +63,14 @@ fx = {"punches": [], "shakes": [], "whips": [], "flashes": [], "zoomblurs": [], 
 
 # 1) jump-zoom punches on highlight words, spaced out, alternating depth; each holds to the next cut
 last = -9
+zoom_words = [w["timeline_start"] for w in words if norm(w) == "zoom"]   # fx_pass.py already moves the camera there
 for w in [w for w in words if w.get("highlight")]:
     x = w["timeline_start"] + 0.03
     if x - last < 2.5 or in_hold(x) or covered(x) or len(fx["punches"]) >= a.max_punches:
         continue
-    amt = (0.06, 0.08, 0.05, 0.07)[len(fx["punches"]) % 4]
+    if any(abs(x - z) < 2.5 for z in zoom_words) or cut_after(x) - x < 1.8:   # no stacked zooms; room to ease in and out
+        continue
+    amt = (0.05, 0.06, 0.04, 0.055)[len(fx["punches"]) % 4]   # gentle: a push, not a jump
     fx["punches"].append({"t": round(x, 3), "amt": amt, "until": cut_after(x)})
     last = x
 

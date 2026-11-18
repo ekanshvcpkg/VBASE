@@ -28,7 +28,9 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
   // the first shot is already moving on frame 0 (ease-out from speed), later shots ease in-out
   const first = !!seg && seg.timeline_start < 1e-3;
   const segPush = seg ? Math.max(seg.push ?? 0, first ? 0.03 : 0) : 0;
-  const push = 1 + segPush * prog(t, seg?.timeline_start ?? 0, (seg?.timeline_end ?? 1) - (seg?.timeline_start ?? 0), first ? EASE.out : EASE.inOut);
+  // a slow continuous camera breath across the whole video (never resets at a cut), plus any per-shot push
+  const breath = 1 + 0.012 * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / 14));
+  const push = breath * (1 + segPush * prog(t, seg?.timeline_start ?? 0, (seg?.timeline_end ?? 1) - (seg?.timeline_start ?? 0), first ? EASE.out : EASE.inOut));
   // holds: the edit slams the brakes — one slow, deliberate creep in, no cuts, no graphics
   let creep = 1;
   for (const [a, b] of edl.holds ?? []) creep *= 1 + 0.06 * prog(t, a, b - a, EASE.inOut) * (1 - prog(t, b, 0.6, EASE.inOut));

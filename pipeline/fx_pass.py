@@ -72,7 +72,7 @@ def main():
     ap.add_argument("--clone-at", type=float, default=None, help="source time of the frame the clone is cut from")
     ap.add_argument("--clone-word", default=None, help="the clone spawns on this word")
     ap.add_argument("--zoom-word", default="zoom", help="zoom in on its first use, out on its second ('' disables)")
-    ap.add_argument("--zoom", type=float, default=1.38)
+    ap.add_argument("--zoom", type=float, default=1.22)
     a = ap.parse_args()
 
     edl = json.load(open(os.path.join(a.dir, "master_edl.json")))
@@ -85,8 +85,10 @@ def main():
     z_in = find_word(words, a.zoom_word.lower()) if a.zoom_word else None
     z_out = find_word(words, a.zoom_word.lower(), after=z_in["timeline_start"] + 0.1) if z_in else None
     if z_in and z_out:
-        zoom_in_t, zoom_out_t = z_in["timeline_start"] + 0.06, z_out["timeline_start"] + 0.06
-        zoom_end_t = zoom_out_t + 0.9
+        zoom_in_t = z_in["timeline_start"] - 0.1
+        # one smooth move: push in, hold at least 1.2 s even when "zoom out" follows at once, then a slow pull-out
+        zoom_out_t = max(z_out["timeline_start"], zoom_in_t + 1.5)
+        zoom_end_t = zoom_out_t + 1.3
     clone_t0 = clone_t1 = INF
     sw = find_word(words, a.clone_word.lower()) if (a.clone_word and a.clone_at is not None) else None
     if sw:
@@ -212,19 +214,23 @@ def main():
                     return 1 - np.exp(-z * w0 * x) * (np.cos(wd * x) + z * w0 / wd * np.sin(wd * x))
                 return 1 - np.exp(-w0 * x) * (1 + w0 * x)
 
+            def smooth(x):
+                """smootherstep 0 -> 1: zero velocity and acceleration at both ends (no snap, no overshoot)"""
+                x = min(max(x, 0.0), 1.0)
+                return x * x * x * (x * (x * 6 - 15) + 10)
+
             def zoom_at(tz):
-                # push in on "zoom in" with a ~5 % settle, creep while held, then ease back out on "zoom out"
-                zin = 1 + (a.zoom - 1) * spring(tz - zoom_in_t, 140, 16) + 0.015 * max(0, tz - zoom_in_t)
+                zin = 1 + (a.zoom - 1) * smooth((tz - zoom_in_t) / 1.0)
                 if tz < zoom_out_t:
-                    return zin
-                zpk = 1 + (a.zoom - 1) * spring(zoom_out_t - zoom_in_t, 140, 16) + 0.015 * (zoom_out_t - zoom_in_t)
-                return max(1.0, zpk + (1 - zpk) * spring(tz - zoom_out_t, 90, 19))   # critically damped: never below 1
+                    return zin + 0.01 * smooth((tz - zoom_in_t) / 1.2)          # a slight creep while held
+                zpk = 1 + (a.zoom - 1) * smooth((zoom_out_t - zoom_in_t) / 1.0) + 0.01 * smooth((zoom_out_t - zoom_in_t) / 1.2)
+                return zpk + (1 - zpk) * smooth((tz - zoom_out_t) / 1.2)
 
             def warp(src, z):
                 cw2, ch2 = W / z, H / z
                 x0z = min(max(fc[0] - cw2 / 2, 0), W - cw2)
                 y0z = min(max(fc[1] - ch2 * 0.42, 0), H - ch2)
-                dx, dy = 3 * np.sin(t * 5.3) * (z - 1), 2 * np.sin(t * 7.1 + 1) * (z - 1)   # a hand on the camera
+                dx = dy = 0.0   # locked off: any wobble during a zoom reads as jitter
                 M = np.float32([[z, 0, -x0z * z + dx], [0, z, -y0z * z + dy]])
                 return cv2.warpAffine(src, M, (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
