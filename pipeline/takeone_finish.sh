@@ -6,7 +6,7 @@
 # Env (all optional; the VBASE skill fills them from the video):
 #   BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   on-screen words      SFX=1   add procedural sound effects (off by default)
 #   OUT_NAME                                      file name of the cut (default: <video>-vbase.mp4)
-#   MUSIC_FILE=<mp3/wav> [MUSIC_LUFS=-37 MUSIC_START=0]   your own background track at one steady, low level
+#   MUSIC_FILE=<mp3/wav> [MUSIC_LUFS=-44 MUSIC_START=0]   your own background track at one steady, low level
 #   MUSIC=code                                    compose VBASE's own bed instead (free, fitted to the length)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -82,9 +82,9 @@ if [[ "${MUSIC:-}" == code && -z "${MUSIC_FILE:-}" ]]; then
 fi
 # MUSIC_FILE: a background track under the whole film at ONE steady level (owner note: a level that rose and fell
 # with the voice, i.e. ducking, read as the sound "increasing and decreasing"). The track is levelled to
-# MUSIC_LUFS (default -37, ~22 dB under the voice; -31 read as too loud), with a 2 s fade-in and a fade-out at the end. No ducking.
+# MUSIC_LUFS (default -44, ~30 dB under the voice: -31 and -37 both read as too loud), with a 2 s fade-in and a fade-out at the end. No ducking.
 if [[ -n "${MUSIC_FILE:-}" && -f "${MUSIC_FILE}" ]]; then
-  ML="${MUSIC_LUFS:--37}"; MS="${MUSIC_START:-0}"; FO=$(python3 -c "print(round($D-2.2,3))")
+  ML="${MUSIC_LUFS:--44}"; MS="${MUSIC_START:-0}"; FO=$(python3 -c "print(round($D-2.2,3))")
   ffmpeg -v error -y -i mix.wav -i "$MUSIC_FILE" -filter_complex "\
 [1:a]atrim=start=$MS:duration=$D,asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,\
 loudnorm=I=$ML:LRA=3:TP=-8,aresample=48000,afade=t=in:d=2.0,afade=t=out:st=$FO:d=2.2[m];\

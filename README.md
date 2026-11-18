@@ -122,7 +122,7 @@ You can also just ask: *"edit ~/Downloads/take.mov with vbase"*.
 | `MUSIC=code` | Compose VBASE's own background bed in code: free, fitted to the exact length, at one steady, low level under your voice. |
 | `SFX=1` | Quiet pop sounds only where a visual pops in, timed to its frame and tuned to the bed (off by default). |
 | `VBASE_GRADE=natural` | Keep the camera's own colours (no colour grade). |
-| `MUSIC_FILE=track.mp3` | Your own background music at one steady, low level under your voice (`MUSIC_LUFS`, default −37). |
+| `MUSIC_FILE=track.mp3` | Your own background music at one steady, low level under your voice (`MUSIC_LUFS`, default −44). |
 | `TAKEONE=0` | Skip the open and end card. |
 
 </details>
