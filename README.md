@@ -41,7 +41,7 @@ claude plugin marketplace add ekanshvcpkg/VBASE && claude plugin install vbase@v
 /vbase:edit ~/Downloads/take.mov
 ```
 
-You get `take-vbase.mp4` next to your video.
+You get `take-vbase.mp4` next to your video, and the VBASE review room opens in your browser at `http://localhost:4400`.
 
 <details>
 <summary>Prefer installing from inside Claude Code?</summary>
@@ -82,7 +82,7 @@ Run these one at a time:
 
 <img src="docs/images/vbase-review-room.gif" width="860" alt="Pinning a note on a frame, leaving a whole-film note, resolving a note and sending notes to Claude in the VBASE review room">
 
-Run `/vbase:review ~/Downloads/my-take.mov`. Click any frame to pin a note, filter open and resolved notes, then press **Send notes to Claude**. Claude reads every note with its snapshot and answers it in the next take. It runs only on `localhost`; nothing is uploaded.
+It opens by itself after every edit at `http://localhost:4400` (or run `/vbase:review ~/Downloads/my-take.mov`). Click any frame to pin a note, filter open and resolved notes, then press **Send notes to Claude**. Claude reads every note with its snapshot and answers it in the next take. It runs only on `localhost`; nothing is uploaded.
 
 ## How it works
 

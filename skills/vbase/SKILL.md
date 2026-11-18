@@ -56,8 +56,8 @@ The plugin bundles a full runner around the stages below. Paths are relative to 
    - `BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT`: the Take One open and end-card words (real names only).
    - `SFX=1` adds procedural sound effects. **Off by default**: owners found them distracting under a voice.
    - `TAKEONE=0` skips the open/end card.
-5. **Review:** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" review "<video>"` opens the VBASE review room
-   (http://localhost:4400). Notes land in `<work>/cuts/review-notes/notes.json` with a snapshot per pinned frame;
+5. **Review:** the render stage starts the VBASE review room by itself (detached, http://localhost:4400) and opens the
+   browser; `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" review "<video>"` reopens it. `REVIEW=0` skips it. Notes land in `<work>/cuts/review-notes/notes.json` with a snapshot per pinned frame;
    each "Send notes" appends `SENT` to `sent.log`. Treat every note as the next take.
 
 **Two extra scenes** ship with the plugin (see `references/scene_catalog.md`): `proof_grid` (a 2x2 grid of real frames

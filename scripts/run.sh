@@ -4,7 +4,7 @@
 #   bash scripts/run.sh analyze <video>    probe, silences, Silero VAD, auto-editor pass, WhisperX words, scene cuts
 #   ...Claude writes <work>/edit_plan.md + edl_draft.json (skill Stage 2)...
 #   bash scripts/run.sh render  <video>    cut + grade + audio master -> in-footage FX -> 3D/captions -> Take One open/end card -> QC
-#   bash scripts/run.sh review  <video>    open the VBASE review room on the cuts
+#   bash scripts/run.sh review  <video>    open the VBASE review room on the cuts (render does this automatically)
 #
 # Optional env for render:  ZOOM_WORD=zoom   CLONE_AT=<source s> CLONE_WORD=<word>   SFX=1
 #                           BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   (Take One words)   TAKEONE=0 (skip Take One)
@@ -16,6 +16,20 @@ STAGE="${1:?stage: analyze|render|review}"; IN="$(cd "$(dirname "$2")" && pwd)/$
 NAME="$(basename "${IN%.*}")"; W="${VBASE_WORK:-$(dirname "$IN")/.vbase/$NAME}"; mkdir -p "$W"
 SK="$ROOT/skills/vbase/scripts"; PY="$VB/venv/bin/python"; P="$ROOT/pipeline"
 echo "work dir: $W"
+
+# the VBASE review room, detached so it keeps running after this script (and Claude) exit
+start_room() {
+  local port="${PORT:-4400}" cuts="$W/cuts"; mkdir -p "$cuts"
+  cp "$(dirname "$IN")/$NAME-vbase.mp4" "$cuts/" 2>/dev/null || true
+  if curl -s -o /dev/null "http://127.0.0.1:$port/api/cuts"; then
+    pkill -f "review-room/server.mjs .* $port\$" 2>/dev/null || true; sleep 0.5      # a room for another video: replace it
+  fi
+  nohup node "$ROOT/review-room/server.mjs" "$cuts" "$port" > "$W/review-room.log" 2>&1 &
+  disown 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.3; done
+  echo "VBASE review room: http://localhost:$port   (notes: $cuts/review-notes/, stop: pkill -f review-room/server.mjs)"
+  command -v open >/dev/null && open "http://localhost:$port" || true
+}
 
 case "$STAGE" in
 analyze)
@@ -66,12 +80,10 @@ render)
   if [[ "${TAKEONE:-1}" == 1 ]]; then bash "$P/takeone_finish.sh" "$W" "$IN" && OUTV="$W/takeone/cuts/$NAME-vbase.mp4"; fi
   cp "$OUTV" "$(dirname "$IN")/$NAME-vbase.mp4"; cp "$W/timeline.otio" "$(dirname "$IN")/$NAME-vbase.otio" 2>/dev/null || true
   echo "DONE: $(dirname "$IN")/$NAME-vbase.mp4"
+  [[ "${REVIEW:-1}" == 1 ]] && start_room      # REVIEW=0 to skip opening the website
   ;;
 review)
-  mkdir -p "$W/cuts"; cp "$(dirname "$IN")/$NAME-vbase.mp4" "$W/cuts/" 2>/dev/null || true
-  echo "VBASE review room: http://localhost:${PORT:-4400}  (notes land in $W/cuts/review-notes/)"
-  (command -v open >/dev/null && sleep 1 && open "http://localhost:${PORT:-4400}") &
-  node "$ROOT/review-room/server.mjs" "$W/cuts" "${PORT:-4400}"
+  start_room
   ;;
 *) echo "unknown stage: $STAGE"; exit 1;;
 esac
