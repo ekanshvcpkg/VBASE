@@ -197,8 +197,16 @@ const ago=(iso)=>{const s=(Date.now()-new Date(iso))/1000;if(!(s>=0))return'';if
 const api=(p,o)=>fetch(p,o).then((r)=>r.json());
 const toast=(s)=>{$('toastT').textContent=s;const t=$('toast');t.classList.add('show');clearTimeout(toast.k);toast.k=setTimeout(()=>t.classList.remove('show'),2600);};
 const where=(s,on)=>{$('whereT').textContent=s;$('where').classList.toggle('on',!!on);};
-async function boot(){cuts=await api('/api/cuts');for(const c of cuts){$('cut').add(new Option(c.name.replace('.mp4',''),c.name));$('cmp').add(new Option(c.name.replace('.mp4',''),c.name));}
-  const want=localStorage.getItem('rr-cut');if(want&&cuts.some((c)=>c.name===want))$('cut').value=want;setCut();await refresh();}
+const label=(n)=>n.replace('.mp4','');
+function addCut(c,atTop){for(const id of ['cut','cmp']){const sel=$(id),o=new Option(label(c.name),c.name);if(atTop)sel.add(o,id==='cmp'?1:0);else sel.add(o);}}
+// open the newest take; the remembered choice only wins if it is still the newest one
+async function boot(){cuts=await api('/api/cuts');for(const c of cuts)addCut(c,false);
+  if(cuts.length)$('cut').value=cuts[0].name;setCut();await refresh();setInterval(watchCuts,4000);}
+// a new take rendered while the page is open shows up by itself (and opens, unless a note is being written)
+async function watchCuts(){let now;try{now=await api('/api/cuts');}catch{return;}
+  const known=new Set(cuts.map((c)=>c.name)),fresh=now.filter((c)=>!known.has(c.name));if(!fresh.length)return;
+  cuts=now;for(const c of fresh.slice().reverse())addCut(c,true);
+  if(!$('text').value.trim()){$('cut').value=fresh[0].name;setCut();toast('New take: '+label(fresh[0].name));}else toast('New take ready: '+label(fresh[0].name));}
 function setCut(){const n=$('cut').value.replace('.mp4','');v.src='/video/'+encodeURIComponent($('cut').value);$('tagA').textContent=n+'.mp4';$('title').textContent=n;document.title=n+' · VBASE';$('project').textContent=(n.split(/[-_]/)[0]||'project');localStorage.setItem('rr-cut',$('cut').value);clearPin();draw();}
 function setCmp(){const n=$('cmp').value;$('boxB').style.display=n?'':'none';$('stage').className=n?'two':'';if(n){w.src='/video/'+encodeURIComponent(n);$('tagB').textContent=n.replace('.mp4','')+' · compare';w.currentTime=v.currentTime;}else w.removeAttribute('src');}
 async function refresh(){notes=(await api('/api/notes')).notes;draw();}

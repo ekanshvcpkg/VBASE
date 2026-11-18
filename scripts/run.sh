@@ -20,7 +20,14 @@ echo "work dir: $W"
 # the VBASE review room, detached so it keeps running after this script (and Claude) exit
 start_room() {
   local port="${PORT:-4400}" cuts="$W/cuts"; mkdir -p "$cuts"
-  cp "$(dirname "$IN")/$NAME-vbase.mp4" "$cuts/" 2>/dev/null || true
+  # every render becomes the next take (-v2, -v3 ...); notes stay pinned to the take they were written on
+  local out="$(dirname "$IN")/$NAME-vbase.mp4" last="" n=1
+  if [[ -f "$out" ]]; then
+    for f in "$cuts/$NAME-vbase.mp4" "$cuts/$NAME-vbase-v"*.mp4; do [[ -f "$f" ]] && { last="$f"; n=$((n+1)); }; done
+    last=$(ls -t "$cuts/$NAME-vbase"*.mp4 2>/dev/null | head -1 || true)
+    if [[ -z "$last" ]]; then cp "$out" "$cuts/$NAME-vbase.mp4"
+    elif ! cmp -s "$out" "$last"; then cp "$out" "$cuts/$NAME-vbase-v$n.mp4"; echo "new take: $NAME-vbase-v$n"; fi
+  fi
   if curl -s -o /dev/null "http://127.0.0.1:$port/api/cuts"; then
     pkill -f "review-room/server.mjs .* $port\$" 2>/dev/null || true; sleep 0.5      # a room for another video: replace it
   fi
