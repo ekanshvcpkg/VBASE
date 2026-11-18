@@ -1,0 +1,15 @@
+{
+  "name": "vbase",
+  "description": "VBASE: an AI video editing studio for Claude Code. Raw take in, edited video out.",
+  "owner": {
+    "name": "Ekansh",
+    "url": "https://github.com/ekanshvcpkg"
+  },
+  "plugins": [
+    {
+      "name": "vbase",
+      "source": "./",
+      "description": "AI video editing studio for Claude Code: raw take in, edited video out."
+    }
+  ]
+}

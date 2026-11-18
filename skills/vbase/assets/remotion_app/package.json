@@ -1,0 +1,28 @@
+{
+  "name": "vidbase-render",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "render": "remotion render src/index.ts MainComposite out.mp4 --gl=angle --concurrency=2 --timeout=120000",
+    "stills": "node scripts/stills.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "9.122.0",
+    "@react-three/fiber": "8.18.0",
+    "@remotion/bundler": "4.0.544",
+    "@remotion/cli": "4.0.544",
+    "@remotion/google-fonts": "4.0.544",
+    "@remotion/renderer": "4.0.544",
+    "@remotion/three": "4.0.544",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.544",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/three": "0.169.0",
+    "typescript": "5.6.3"
+  }
+}

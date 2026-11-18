@@ -1,0 +1,156 @@
+<!doctype html><html><head><meta charset="utf-8"><title>vidbase · open + end card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,600&family=JetBrains+Mono:wght@500&display=block" rel="stylesheet">
+<style>html,body{margin:0;background:#111}canvas{display:block;width:100vw;height:auto;max-height:100vh;object-fit:contain}</style>
+<script src="springs.js"></script></head>
+<body><canvas id="c"></canvas><script>
+// Take One pieces around the vidbase edit, one timeline, cut apart after export:
+//   0.0–4.0  OPEN: drawn over the edit's own first 4 s (voice from frame 0). A wipe sweeps from the raw
+//            take (empty hands) to Claude's edit (ball in hand) as the ball drops in; the name lands in free space
+//   4.0–8.5  END CARD: the edit's last frame steps back into a player that replays the ball shot,
+//            beside the name, one line and where to get it (on screen from its first second)
+const W = 1920, H = 1080, FPS = 30;
+const c = document.getElementById('c'); c.width = W; c.height = H; const g = c.getContext('2d');
+const OPEN = 4.0, END_DUR = 4.5;
+window.FILM_DURATION = OPEN + END_DUR;
+window.CUTS = [OPEN];                              // the open -> end card join is a cut (they never touch in the final)
+window.FOOTAGE = [[0, OPEN, 16.58], [OPEN + 0.4, OPEN + 4.25, 16.58]];
+const INK = '#1A1916', PAPER = '#F4F1EA', SUB = '#6B675E', ACCENT = '#C96442';
+const SANS = 'Inter', SERIF = '"Source Serif 4"', MONO = '"JetBrains Mono"';
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+// ---- assets ----
+const load = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
+const seq = (dir, n) => Promise.all(Array.from({ length: n }, (_, k) => load(`assets/${dir}/f${String(k + 1).padStart(3, '0')}.jpg`)));
+let RAW, EDIT, LOOP, LAST;
+const GH = new Path2D('M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z');
+
+// face boxes (canvas px) so the text audit can prove no word sits on a face
+window.FACES = (t) => t < OPEN ? [[790, 200, 330, 310]] : [];
+
+const frameOf = (arr, t) => arr[clamp(Math.floor(t * FPS + 1e-6), 0, arr.length - 1)];
+const cover = (img, x, y, w, h) => { const s = Math.max(w / img.width, h / img.height), iw = img.width * s, ih = img.height * s; g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); };
+const rr = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+const shadowText = (blur, a) => { g.shadowColor = `rgba(0,0,0,${a})`; g.shadowBlur = blur; g.shadowOffsetY = blur / 6; };
+const noShadow = () => { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0; };
+// seeded grain so the code-drawn frames share the footage's lens
+const GRAIN = document.createElement('canvas'); GRAIN.width = 512; GRAIN.height = 512;
+{ const gg = GRAIN.getContext('2d'), d = gg.createImageData(512, 512); let s = 99;
+  for (let i = 0; i < d.data.length; i += 4) { s = (s * 16807) % 2147483647; const v = s & 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  gg.putImageData(d, 0, 0); }
+const grain = (t, a) => { const f = Math.floor(t * FPS); g.save(); g.globalAlpha = a; g.globalCompositeOperation = 'overlay';
+  const ox = (f * 137) % 512, oy = (f * 251) % 512; g.translate(-ox, -oy);
+  for (let x = 0; x < W + 512; x += 512) for (let y = 0; y < H + 512; y += 512) g.drawImage(GRAIN, x, y); g.restore(); };
+
+// a big line that arrives on a heavy spring and leaves upward (a roll, one line at a time)
+const bigLine = (t, text, tIn, tOut, x, y, size) => {
+  if (t < tIn - 1e-6 || (tOut !== null && t > tOut + 0.6)) return;
+  const inn = tIn <= 0 ? 1 : Spring.unit(t - tIn, 'heavy');
+  const out = tOut === null ? 0 : clamp(Spring.unit(t - tOut, 'snappy'), 0, 1);
+  const a = clamp(inn, 0, 1) * (1 - out);
+  if (a <= 0.003) return;
+  g.save(); g.globalAlpha = a; g.font = `600 ${size}px ${SERIF}`; g.fillStyle = '#fff'; g.textBaseline = 'alphabetic';
+  shadowText(30, 0.55); text.split('\n').forEach((ln, i) => g.fillText(ln, x, y + i * size * 1.05 + (1 - inn) * 50 - out * 60)); g.restore();
+};
+
+// cubic-bezier(0.16, 1, 0.3, 1): the edit's first-shot push-in eases this way, so the raw half matches it
+const bez = (x1, y1, x2, y2) => (x) => { let lo = 0, hi = 1, u = x;
+  for (let i = 0; i < 24; i++) { u = (lo + hi) / 2; const bx = 3 * x1 * u * (1 - u) ** 2 + 3 * x2 * u * u * (1 - u) + u ** 3; if (bx < x) lo = u; else hi = u; }
+  return 3 * y1 * u * (1 - u) ** 2 + 3 * y2 * u * u * (1 - u) + u ** 3; };
+const EASE_OUT = bez(0.16, 1, 0.3, 1);
+// per-video values come from cfg.json (written by takeone_finish.sh from setup.json + master_edl.json)
+let CFG = { brand: 'VBASE', line1: 'One raw take.', line2: 'Claude did\nthe edit.', tagline: 'Claude edits it.', end1: 'Raw take in.', end2: 'Edited video out.', cta: 'Star it on GitHub', foot: 'A Claude Code plugin', push: 0.035, shot1: 6.9333, faceY: 0.35, rawAt: 0, nRaw: 120, nEdit: 120, nLoop: 116 };
+let PUSH, SHOT1, FACE_Y;
+
+function drawRaw(t) {
+  // the raw take, with the same slow push the edit's first shot has, so the two halves line up under the wipe
+  const s = 1 + PUSH * EASE_OUT(clamp(t / SHOT1, 0, 1)), oy = H * FACE_Y;
+  g.save(); g.translate(W / 2, oy); g.scale(s, s); g.translate(-W / 2, -oy); g.drawImage(frameOf(RAW, t), 0, 0, W, H); g.restore();
+}
+
+function drawOpen(t) {
+  // under everything: the finished edit (voice, captions, the ball) — the film is already playing on frame 0
+  g.drawImage(frameOf(EDIT, t), 0, 0, W, H);
+  // the wipe: the raw take on the right of the line, Claude's edit on the left; it sweeps as the ball drops in
+  const wp = t < 0.5 ? 0 : clamp(Spring.unit(t - 0.5, 'camera'), 0, 1.0);
+  const lineX = W * wp;
+  if (wp < 0.999) {
+    g.save(); g.beginPath(); g.rect(lineX, 0, W - lineX, H); g.clip(); drawRaw(t);
+    // the raw side's own label, a live timecode of the source take
+    g.fillStyle = 'rgba(13,14,17,0.72)'; rr(W - 96 - 330, 80, 330, 84, 14); g.fill();
+    const on = Math.floor(t * 2) % 2 === 0 ? 1 : 0.35;
+    g.fillStyle = `rgba(232,72,58,${on})`; g.beginPath(); g.arc(W - 96 - 330 + 40, 122, 12, 0, 7); g.fill();
+    g.font = `500 50px ${MONO}`; g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('RAW', W - 96 - 330 + 70, 124);
+    g.restore();
+    if (wp > 0.001) {
+      g.save(); g.fillStyle = ACCENT; g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 18; g.fillRect(lineX - 3, 0, 6, H); g.restore();
+    }
+  }
+  // the words, bottom-left above the captions, one line at a time
+  // one headline slot (top-left, clear of the face, the ball's path and the captions): its lines roll in place
+  bigLine(t, CFG.line1, 0, 1.05, 104, 200, 104);
+  bigLine(t, CFG.line2, 1.22, 2.42, 104, 200, 104);
+  // the name, in the free wall space top-left, while the film keeps playing (no stop for a logo card)
+  if (t >= 2.55 && t < 4.0) {
+    const k = clamp(Spring.unit(t - 2.55, 'heavy'), 0, 1.05), k2 = clamp(Spring.unit(t - 2.6, 'heavy'), 0, 1.05);
+    const out = clamp((t - 3.7) / 0.27, 0, 1), a = (1 - out);
+    g.save(); g.textBaseline = 'alphabetic'; shadowText(28, 0.55);
+    g.globalAlpha = clamp(k, 0, 1) * a; g.fillStyle = '#fff'; g.font = `700 132px ${SANS}`;
+    g.fillText(CFG.brand, 104, 212 + (1 - k) * 34 - out * 20);
+    const nW = g.measureText(CFG.brand).width; noShadow(); g.fillStyle = ACCENT; g.beginPath(); g.arc(104 + nW + 24, 200 + (1 - k) * 34 - out * 20, 14 * clamp(k, 0, 1), 0, 7); g.fill();
+    shadowText(20, 0.55); g.globalAlpha = clamp(k2, 0, 1) * a; g.fillStyle = 'rgba(255,255,255,0.92)'; g.font = `600 54px ${SERIF}`;
+    g.fillText(CFG.tagline, 108, 286 + (1 - k2) * 24 - out * 20); g.restore();
+  }
+  grain(t, 0.02);
+}
+
+function drawEnd(u) {
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  // the last frame of the edit steps back into a player
+  const k = clamp(Spring.unit(u, 'heavy'), 0, 1.03);   // a slow, weighty step back
+  const P = { x: 110, y: 262, w: 900, h: 506 };
+  const x = P.x * k, y = P.y * k, w = W + (P.w - W) * k, h = H + (P.h - H) * k, rad = 26 * clamp(k, 0, 1);
+  g.save(); g.shadowColor = `rgba(40,30,20,${0.28 * clamp(k, 0, 1)})`; g.shadowBlur = 60; g.shadowOffsetY = 24;
+  rr(x, y, w, h, rad); g.fillStyle = '#000'; g.fill(); noShadow(); g.clip();
+  g.drawImage(LAST, x, y, w, h);
+  // ... then replays the ball shot (the person comes back at the end)
+  const lu = u - 0.4;
+  if (lu > 0.3) cover(frameOf(LOOP, lu - 0.3), x, y, w, h);   // a clean cut inside the player once it has settled (a crossfade double-exposed two shots)
+  g.restore();
+  // right column: name, line, where to get it, all within the first second
+  const col = 1100;
+  // the column waits until the player has stepped clear of it (~0.35 s)
+  const a1 = clamp(Spring.unit(u - 0.55, 'heavy'), 0, 1.05), a2 = clamp(Spring.unit(u - 0.7, 'heavy'), 0, 1.05);
+  const a3 = clamp(Spring.unit(u - 0.85, 'snappy'), 0, 1.1), a4 = clamp(Spring.unit(u - 1.0, 'heavy'), 0, 1.05);
+  g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  g.globalAlpha = clamp(a1, 0, 1); g.fillStyle = INK; g.font = `700 150px ${SANS}`;
+  g.fillText(CFG.brand, col, 430 + (1 - a1) * 36);
+  const nW = g.measureText(CFG.brand).width; g.fillStyle = ACCENT; g.beginPath(); g.arc(col + nW + 26, 418 + (1 - a1) * 36, 15 * clamp(a1, 0, 1), 0, 7); g.fill();
+  g.globalAlpha = clamp(a2, 0, 1); g.fillStyle = SUB; g.font = `600 56px ${SERIF}`;
+  g.fillText(CFG.end1, col, 520 + (1 - a2) * 26); g.fillText(CFG.end2, col, 590 + (1 - a2) * 26);
+  // CTA pill
+  g.save(); g.globalAlpha = clamp(a3, 0, 1); const s3 = 0.9 + 0.1 * a3;
+  g.translate(col, 650); g.scale(s3, s3);
+  // the GitHub mark only when the button really points to GitHub; the pill fits its words
+  const gh = /github/i.test(CFG.cta), tx = gh ? 112 : 44;
+  g.font = `600 50px ${SANS}`; const pw = Math.max(320, tx + g.measureText(CFG.cta).width + 44);
+  rr(0, 0, pw, 108, 54); g.fillStyle = INK; g.fill();
+  if (gh) { g.save(); g.translate(30, 22); g.scale(3.75, 3.75); g.fillStyle = '#fff'; g.fill(GH); g.restore(); }
+  g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(CFG.cta, tx, 56); g.restore();
+  g.globalAlpha = clamp(a4, 0, 1); g.fillStyle = SUB; g.font = `500 50px ${SANS}`; g.textBaseline = 'alphabetic';
+  g.fillText(CFG.foot, col, 840 + (1 - a4) * 20);
+  g.globalAlpha = 1;
+  grain(u + 100, 0.03);
+}
+
+window.renderFrame = (t) => {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.filter = 'none'; noShadow(); g.textAlign = 'left';
+  window.TEXT_AUDIT_SKIP = false;
+  if (t < OPEN) drawOpen(t); else drawEnd(t - OPEN);
+};
+
+fetch('cfg.json').then((r) => r.ok ? r.json() : {}).catch(() => ({})).then((c) => { CFG = { ...CFG, ...c }; PUSH = CFG.push; SHOT1 = CFG.shot1; FACE_Y = CFG.faceY; return Promise.all([seq('raw', CFG.nRaw), seq('edit', CFG.nEdit), seq('loop', CFG.nLoop), load('assets/last.jpg'), document.fonts.load(`700 100px ${SANS}`), document.fonts.load(`600 100px ${SERIF}`), document.fonts.load(`500 40px ${MONO}`), document.fonts.load(`600 40px ${SANS}`), document.fonts.load(`500 40px ${SANS}`)]); })
+  .then(([r, e, l, last]) => { RAW = r; EDIT = e; LOOP = l; LAST = last; return document.fonts.ready; })
+  .then(() => { window.READY = true; if (navigator.webdriver) return; const s0 = performance.now();
+    const loop = (n) => { window.renderFrame(((n - s0) / 1000) % window.FILM_DURATION); requestAnimationFrame(loop); }; requestAnimationFrame(loop); });
+</script></body></html>

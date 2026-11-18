@@ -1,0 +1,11 @@
+{
+  "name": "vbase",
+  "displayName": "VBASE",
+  "version": "1.0.0",
+  "description": "Turn one raw talking-head take into an edited video inside Claude Code: word-timed cuts, captions, 3D objects tracked to your hands, camera moves, a clone of you, a launch-style open and end card, and a review room for notes.",
+  "author": { "name": "Ekansh", "url": "https://github.com/ekanshvcpkg" },
+  "homepage": "https://github.com/ekanshvcpkg/VBASE",
+  "repository": "https://github.com/ekanshvcpkg/VBASE",
+  "license": "MIT",
+  "keywords": ["video", "editing", "captions", "remotion", "whisperx", "threejs", "claude-code"]
+}

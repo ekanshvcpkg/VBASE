@@ -1,0 +1,9 @@
+node_modules/
+.vbase/
+__pycache__/
+*.pyc
+.DS_Store
+review-notes/
+*.mp4
+*.mov
+!docs/**
