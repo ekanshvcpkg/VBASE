@@ -19,23 +19,61 @@ A Claude Code plugin that edits your talking-head videos: word-timed cuts, capti
 
 ---
 
-## Install
+## Quick start
 
-In Claude Code:
+<img src="docs/images/vbase-install.gif" width="860" alt="Terminal walkthrough: add the VBASE marketplace, install the plugin, run setup, then edit a video">
+
+<table>
+<tr>
+<td width="25%" valign="top">
+
+**1 · Add the marketplace**
 
 ```text
-/plugin marketplace add ekanshvcpkg/VBASE
+/plugin marketplace add
+  ekanshvcpkg/VBASE
+```
+
+</td>
+<td width="25%" valign="top">
+
+**2 · Install the plugin**
+
+```text
 /plugin install vbase@vbase
+```
+
+</td>
+<td width="25%" valign="top">
+
+**3 · One-time setup**
+
+```text
 /vbase:setup
 ```
 
-`/vbase:setup` installs everything once (about 5–10 minutes, a few GB) and prints a status table. Then, for every video:
+<sub>~5–10 min, a few GB. Prints a ready / missing table.</sub>
+
+</td>
+<td width="25%" valign="top">
+
+**4 · Edit a video**
 
 ```text
-/vbase:edit ~/Downloads/my-take.mov
+/vbase:edit ~/Downloads/take.mov
 ```
 
-That's it. Claude transcribes, directs and renders the edit, checks its own work, and hands you `my-take-vbase.mp4`.
+<sub>Out comes <code>take-vbase.mp4</code> next to it.</sub>
+
+</td>
+</tr>
+</table>
+
+> [!TIP]
+> You can also just talk to Claude: *"edit ~/Downloads/take.mov with vbase, make it vertical, my name is Ada"*.
+> Then run `/vbase:review ~/Downloads/take.mov` to pin notes on frames and get the next take.
+
+<sub>The walkthrough above is illustrated; the setup table and stage results are real output from a VBASE test run.</sub>
 
 ## What it does
 
@@ -53,6 +91,8 @@ That's it. Claude transcribes, directs and renders the edit, checks its own work
 
 
 ## The review room
+
+<img src="docs/images/vbase-review-room.gif" width="860" alt="Pinning a note on a frame, leaving a whole-film note, resolving a note and sending notes to Claude in the VBASE review room">
 
 Run `/vbase:review ~/Downloads/my-take.mov`. Click any frame to pin a note, filter open and resolved notes, then press **Send notes to Claude**. Claude reads every note with its snapshot and answers it in the next take. It runs only on `localhost`; nothing is uploaded.
 
