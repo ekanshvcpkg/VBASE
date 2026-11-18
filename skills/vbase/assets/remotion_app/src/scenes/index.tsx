@@ -41,7 +41,7 @@ export const SCENES: Record<string, SceneDef> = {
   held_object: { component: HeldObject, design: [0, 0] }, // layout 'tracked': drawn at full frame size
 };
 
-export type Layout = 'overlay' | 'split' | 'broll' | 'tracked';
+export type Layout = 'overlay' | 'split' | 'broll' | 'tracked' | 'backdrop';   // backdrop: a big screen in the room BEHIND the speaker
 export type SceneCue = {
   timeline_start: number;
   timeline_end: number;
@@ -55,6 +55,7 @@ export type SceneCue = {
 type Box = { x: number; y: number; w: number; h: number };
 export const layoutBox = (layout: Layout, W: number, H: number, side: 'left' | 'right' = 'right'): Box => {
   if (layout === 'tracked') return { x: 0, y: 0, w: W, h: H };
+  if (layout === 'backdrop') return { x: W * 0.07, y: H * 0.05, w: W * 0.86, h: H * 0.74 };
   if (H >= W * 0.95) { // portrait and square (9:16, 4:5, 1:1) share the stacked layouts
     if (layout === 'overlay') return { x: W * 0.08, y: H * 0.03, w: W * 0.84, h: H * 0.28 };
     if (layout === 'split') return { x: 0, y: 0, w: W, h: H * 0.47 };
@@ -99,6 +100,7 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
   const floating = layout === 'split' && !vertical && (cue.props?.panel ?? 'float') === 'float';
   // portrait: a fixed design width, height matched to the box so the scene fills it (bigger type)
   const tracked = layout === 'tracked';
+  const backdrop = layout === 'backdrop';
   const panel = layout === 'split';
   // tracked + panel scenes are drawn at the box's true pixel size (type sizes stay honest)
   const [dw, dh] = tracked || panel ? [Math.round(box.w), Math.round(box.h)] : vertical && def.designV
@@ -108,7 +110,7 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
   const zoom = Math.min(box.w / dw, box.h / dh);
   // entries are cuts or wipes, never a soft fade-and-scale: broll/tracked cut, panels wipe,
   // overlays get a short clean reveal
-  const env = tracked || layout === 'broll' || panel ? 1 : envelope(t, dur, 0.35, 0.25);
+  const env = tracked || layout === 'broll' || panel ? 1 : backdrop ? envelope(t, dur, 0.45, 0.35) : envelope(t, dur, 0.35, 0.25);
   const wipeIn = panel ? prog(t, 0, 0.5, EASE.out) : 1;
   const wipeOut = panel ? prog(t, dur - 0.4, 0.4, EASE.inOut) : 0;
   const fIn = prog(t, 0, 0.7, EASE.out), fOut = prog(t, dur - 0.45, 0.45, EASE.inOut);
@@ -131,16 +133,18 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
         width: dw * zoom, height: dh * zoom, opacity: floating ? Math.min(1, fIn * 1.4) * (1 - fOut) : Math.min(1, env * 1.3),
         clipPath: panel && !floating ? (vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`) : undefined,
         // floating: the window hangs in the room beside the speaker, angled toward them, and settles in from its side
-        transform: floating
+        transform: backdrop
+          ? `perspective(2400px) rotateY(${-5 + 2 * Math.sin(t * 0.4)}deg) rotateX(2deg) scale(${0.94 + 0.06 * env})`
+          : floating
           ? `perspective(2000px) translateX(${dir * ((1 - fIn) * 160 + fOut * 200)}px) translateY(${Math.sin(t * 1.1) * 6 + (1 - fIn) * 30}px) rotateY(${-dir * (9 + (1 - fIn) * 22)}deg) rotateX(${2 * Math.sin(t * 0.7)}deg) scale(${0.8 + 0.06 * fIn})`
           : panel ? (vertical ? `translateY(${-wipeOut * box.h * 1.05}px)` : `translateX(${dir * wipeOut * box.w * 1.05}px)`) : `translateY(${(1 - env) * 24}px)`,
         transformOrigin: floating ? (side === 'left' ? '45% 50%' : '55% 50%') : undefined,
-        filter: floating ? 'drop-shadow(0 40px 50px rgba(0,0,0,0.55)) drop-shadow(0 8px 14px rgba(0,0,0,0.35))' : undefined }}>
+        filter: backdrop ? 'drop-shadow(0 50px 60px rgba(0,0,0,0.6))' : floating ? 'drop-shadow(0 40px 50px rgba(0,0,0,0.55)) drop-shadow(0 8px 14px rgba(0,0,0,0.35))' : undefined }}>
         <div style={{ position: 'relative', width: dw, height: dh, zoom }}>
           <Comp t={t} dur={dur} props={{ palette, ...(cue.props ?? {}) }} beats={cue.beats ?? []} accent={cue.accent ?? cue.props?.accent ?? brand?.accent ?? THEME.accent} index={index}
             w={dw} h={dh} vertical={dh > dw * 1.1} layout={layout} />
         </div>
-        {!tracked && !panel && layout !== 'broll' && <Grain frame={frame} />}
+        {!tracked && !panel && !backdrop && layout !== 'broll' && <Grain frame={frame} />}
       </div>
     </AbsoluteFill>
   );

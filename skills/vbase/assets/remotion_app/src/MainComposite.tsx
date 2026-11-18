@@ -34,13 +34,14 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
   // holds: the edit slams the brakes — one slow, deliberate creep in, no cuts, no graphics
   let creep = 1;
   for (const [a, b] of edl.holds ?? []) creep *= 1 + 0.06 * prog(t, a, b - a, EASE.inOut) * (1 - prog(t, b, 0.6, EASE.inOut));
-  let split = 0, broll = 0, splitL = 0;
+  let split = 0, broll = 0, splitL = 0, bd = 0;
   for (const c of sceneCues) {
     const w = layoutWeight(c, t);
     // floating windows hang in the room beside the speaker: the footage stays put (sliding it uncovered black edges)
     const floats = ((c as any).props?.panel ?? 'float') === 'float';
     if (c.layout === 'split' && !floats) { split = Math.max(split, w); if ((c as any).props?.side === 'left') splitL = Math.max(splitL, w); }
     if (c.layout === 'broll') broll = Math.max(broll, w);
+    if ((c.layout as string) === 'backdrop') bd = Math.max(bd, w);
   }
   const vertical = height >= width * 0.95;
   // face lands centred in the free 58%: away from a right panel, or towards the right for a left panel
@@ -52,6 +53,7 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
     cam.blurX > 0.3 ? 'url(#whipblur)' : '',
     cam.blur > 0.2 ? `blur(${cam.blur}px)` : '',
     cam.bright !== 1 ? `brightness(${cam.bright})` : '',
+    bd > 0.01 ? `brightness(${1 - 0.18 * bd})` : '',   // the room dims a little while the screen behind is lit
     // behind b-roll the footage stays present as soft, warm light (not a dark void)
     broll > 0.01 ? `blur(${36 * broll}px) brightness(${1 - 0.7 * broll}) saturate(${1 - 0.25 * broll})` : '',   // a dark, calm backdrop (a lighter one read as a milky haze)
   ].filter(Boolean).join(' ');
@@ -69,7 +71,8 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
 };
 
 const BEHIND = new Set(['glass_card', 'glass_chips', 'mascot3d']);
-const isBehind = (c: any) => BEHIND.has(c.scene) && c.props?.behind !== false;   // props.behind = false keeps one in front
+const isBehind = (c: any) => (c.layout === 'backdrop' || BEHIND.has(c.scene)) && c.props?.behind !== false;
+const inRoom = (c: any) => c.layout === 'tracked' || c.layout === 'backdrop';   // props.behind = false keeps one in front
 export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
   const { fps } = useVideoConfig();
   const tNow = useFrame2() / fps;
@@ -80,7 +83,7 @@ export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
     <AbsoluteFill style={{ background: 'radial-gradient(120% 70% at 50% 15%, #23232b 0%, #0b0b0f 70%)' }}>
       <Speaker edl={edl} sceneCues={sceneCues}>
         {/* in-room elements: footage -> element -> the speaker cut out on top (person.webm), so they sit BEHIND the speaker */}
-        {cues.map((cue, idx) => cue.layout !== 'tracked' || !isBehind(cue) ? null : (
+        {cues.map((cue, idx) => !inRoom(cue) || !isBehind(cue) ? null : (
           <Sequence key={idx} from={Math.round(cue.timeline_start * fps)}
             durationInFrames={Math.max(1, Math.round((cue.timeline_end - cue.timeline_start) * fps))} name={`behind ${idx}: ${cue.scene}`}>
             <SceneLayer cue={cue as SceneCue} index={idx} brand={edl.brand} />
@@ -88,7 +91,7 @@ export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
         ))}
         {(edl as any).person_matte && <AbsoluteFill><OffthreadVideo src={staticFile('person.webm')} transparent muted /></AbsoluteFill>}
         {/* objects held in the hand stay in front of the speaker */}
-        {cues.map((cue, idx) => cue.layout !== 'tracked' || isBehind(cue) ? null : (
+        {cues.map((cue, idx) => !inRoom(cue) || isBehind(cue) ? null : (
           <Sequence key={idx} from={Math.round(cue.timeline_start * fps)}
             durationInFrames={Math.max(1, Math.round((cue.timeline_end - cue.timeline_start) * fps))} name={`tracked ${idx}: ${cue.scene}`}>
             <SceneLayer cue={cue as SceneCue} index={idx} brand={edl.brand} />
@@ -96,7 +99,7 @@ export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
         ))}
       </Speaker>
       {cues.map((cue, idx) => {
-        if (cue.layout === 'tracked') return null;
+        if (inRoom(cue)) return null;
         const from = Math.round(cue.timeline_start * fps);
         const durationInFrames = Math.max(1, Math.round((cue.timeline_end - cue.timeline_start) * fps));
         // Inside a Sequence, useCurrentFrame() restarts at 0 -> each cue animates from its own start.

@@ -15,13 +15,21 @@ import mediapipe as mp
 from mediapipe.tasks.python import BaseOptions, vision
 
 MODEL = os.path.expanduser("~/.vidbase/models/selfie_multiclass.tflite")
+RVM = os.path.expanduser("~/.vidbase/models/rvm_mobilenetv3_fp32.torchscript")   # Robust Video Matting: fine edges, fingers, hair
 BEHIND = {"glass_card", "glass_chips", "mascot3d"}
+
+
+def guided(I, p, r=10, eps=2e-3):
+    """He et al. guided filter: snaps the coarse model mask (256 px) to the real edges of the frame (fingers, hair)."""
+    k = (2 * r + 1, 2 * r + 1); f = lambda x: cv2.boxFilter(x, -1, k)
+    mI, mp_ = f(I), f(p); a = (f(I * p) - mI * mp_) / (f(I * I) - mI * mI + eps); b = mp_ - a * mI
+    return f(a) * I + f(b)
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--dir", required=True); a = ap.parse_args()
     mp_path = os.path.join(a.dir, "master_edl.json"); m = json.load(open(mp_path))
-    cues = [c for c in m.get("three_d_cues", []) if c.get("scene") in BEHIND and c.get("props", {}).get("behind", True)]
+    cues = [c for c in m.get("three_d_cues", []) if (c.get("scene") in BEHIND or c.get("layout") == "backdrop") and c.get("props", {}).get("behind", True)]
     m["person_matte"] = bool(cues)
     if not cues:
         json.dump(m, open(mp_path, "w"), indent=1); print("no behind cues"); return
@@ -34,22 +42,45 @@ def main():
     out = os.path.join(a.dir, "remotion_app", "public", "person.webm"); os.makedirs(os.path.dirname(out), exist_ok=True)
     dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", src, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
-                            "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "6M", "-deadline", "realtime", "-cpu-used", "8",
+                            "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "12M", "-deadline", "realtime", "-cpu-used", "8",
                             "-row-mt", "1", "-auto-alt-ref", "0", out], stdin=subprocess.PIPE)
     faces = {i: [] for i in range(len(cues))}
     occ = {i: [] for i in range(len(cues))}          # per frame: which columns of the head band the person fills
     B0, B1 = int(H * 0.06), int(H * 0.44)          # the band the elements live in: head height, above the shoulders
     blank = np.zeros((H, W, 4), np.uint8); n = 0; sz = W * H * 3
+    rvm = None; prev_in = False
+    if os.path.exists(RVM):
+        import torch
+        dev = "mps" if torch.backends.mps.is_available() else "cpu"
+        rvm = torch.jit.load(RVM, map_location=dev).eval(); rec = [None] * 4; prev_in = False
+        print("matting: Robust Video Matting on", dev)
     while True:
         buf = dec.stdout.read(sz)
         if len(buf) < sz: break
         t = n / fps; n += 1
         if not any(a0 <= t <= a1 for a0, a1 in wins):
-            enc.stdin.write(blank.tobytes()); continue
+            enc.stdin.write(blank.tobytes()); prev_in = False; continue
         rgb = np.frombuffer(buf, np.uint8).reshape(H, W, 3)
         res = seg.segment(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb)))
-        person = np.clip(1.0 - np.squeeze(res.confidence_masks[0].numpy_view()), 0, 1)
-        person = cv2.GaussianBlur(person, (0, 0), 1.2)                       # soft, hair-friendly edge
+        cm = [np.squeeze(m_.numpy_view()) for m_ in res.confidence_masks]
+        if rvm is not None:
+            if not prev_in: rec = [None] * 4                                  # a new window: fresh recurrent state
+            with torch.no_grad():
+                x = torch.from_numpy(rgb.copy()).to(dev).permute(2, 0, 1).unsqueeze(0).float() / 255
+                fgr, pha, *rec = rvm(x, *rec, downsample_ratio=0.25)
+            person = pha[0, 0].cpu().numpy()
+            person = np.clip((person - 0.08) / 0.84, 0, 1)                      # solid inside, clean outside, soft hair kept
+        else:
+            person = np.clip(np.maximum(1.0 - cm[0], np.max(np.stack(cm[1:]), axis=0)), 0, 1)   # not-background OR any person class
+            gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
+            small = cv2.resize(gray, (W // 2, H // 2)); ps = cv2.resize(person.astype(np.float32), (W // 2, H // 2))
+            person = cv2.resize(np.clip(guided(small, ps), 0, 1), (W, H))
+            person = np.clip((person - 0.2) / 0.35, 0, 1)
+            hard = (person > 0.5).astype(np.uint8)
+            cs, _ = cv2.findContours(hard, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            solid = np.zeros_like(hard); cv2.drawContours(solid, [c_ for c_ in cs if cv2.contourArea(c_) > 2000], -1, 1, cv2.FILLED)
+            person = cv2.GaussianBlur(np.maximum(person, solid.astype(np.float32)), (0, 0), 1.0)
+        prev_in = True
         frame = np.dstack([rgb, (person * 255).astype(np.uint8)])
         enc.stdin.write(frame.tobytes())
         band = person[B0:B1].max(axis=0) > 0.5
@@ -66,7 +97,7 @@ def main():
     # fills it in more than 10% of the cue's frames; the element takes the wider free side, at head height
     for i, c in enumerate(cues):
         p = c.setdefault("props", {})
-        if p.get("pos_locked") or not occ[i]: continue
+        if p.get("pos_locked") or c.get("layout") == "backdrop" or not occ[i]: continue
         taken = (np.array(occ[i]).mean(axis=0) > 0.10)
         cols = np.where(taken)[0]
         if not len(cols): continue

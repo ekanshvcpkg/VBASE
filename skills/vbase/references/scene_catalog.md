@@ -226,3 +226,5 @@ small act (`act`: `wave`, `look` at the viewer, `happy` squint with rosy cheeks,
 - `glass_card` with `props.hug: true`: it pops up from behind the card's top edge, arms up, then hugs the card (hands over the edge, ^ ^ eyes, a heart).
 - `repo`: it drops onto Star on the `star` beat and stomps it (the landing is the click), cheers, then waves at the viewer (`props.buddy: false` brings the cursor back).
 - end card: when the video has any `mascot3d` cue, it lands beside the CTA button, presses it at 2.2 s (the button dips), and waves (`BUDDY_END=0` to skip).
+
+**`layout: "backdrop"`**: a screen scene (repo, chat, …) hangs in the room as a big lit screen BEHIND the speaker (person cut-out on top), slightly angled, the room dimmed a touch. More cinematic than `broll`, which covers the speaker.

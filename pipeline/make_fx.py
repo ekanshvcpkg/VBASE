@@ -47,7 +47,7 @@ def in_hold(x):
 
 def covered(x):
     """a panel or full-frame scene is on screen (the camera move would be hidden or fight it)"""
-    return any(c.get("layout") in ("split", "broll") and c["timeline_start"] - 0.3 <= x <= c["timeline_end"] + 0.3 for c in cues)
+    return any(c.get("layout") in ("split", "broll", "backdrop") and c["timeline_start"] - 0.3 <= x <= c["timeline_end"] + 0.3 for c in cues)
 
 
 def cut_after(x):
