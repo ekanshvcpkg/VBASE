@@ -53,7 +53,7 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
     cam.blur > 0.2 ? `blur(${cam.blur}px)` : '',
     cam.bright !== 1 ? `brightness(${cam.bright})` : '',
     // behind b-roll the footage stays present as soft, warm light (not a dark void)
-    broll > 0.01 ? `blur(${36 * broll}px) brightness(${1 - 0.38 * broll}) saturate(1.1)` : '',
+    broll > 0.01 ? `blur(${36 * broll}px) brightness(${1 - 0.7 * broll}) saturate(${1 - 0.25 * broll})` : '',   // a dark, calm backdrop (a lighter one read as a milky haze)
   ].filter(Boolean).join(' ');
   return (
     <AbsoluteFill style={{
