@@ -191,3 +191,7 @@ If nothing in the catalog fits, for example a dashboard, a map, a spreadsheet, o
 - **When:** "this level of editing", "look at the difference", any claim about the edit itself.
 - **Props:** `before`, `after` (images under `public/`), `beforeLabel`, `afterLabel`.
 - **Beats:** `after` (when the edited half lands).
+
+**`screen_video`: a real screen recording in a browser window** (layout `broll`)
+- **When:** the speaker describes the product running ("it opens a website", "this is the app").
+- **Props:** `src` (an mp4 under `public/`, e.g. `proof/review-room.mp4`), `url`, `from` (seconds into the recording).

@@ -7,7 +7,7 @@ import type { SceneProps } from '../types';
 // A faithful code-host repository page (GitHub's dark palette and layout), shown flat and
 // crisp. The cursor travels to Star and clicks it on the spoken word while the camera pushes
 // in on the button; the count ticks and the star fills.
-// props: { owner, repo, description?, stars?, forks?, files?: [{name, msg, dir?}], topics?: string[], commit? }
+// props: { owner, repo, description?, stars?, forks?, files?: [{name, msg, dir?, age?}], topics?: string[], commit? }
 // beats: 'star'
 const G = {
   bg: '#0d1117', head: '#010409', line: '#30363d', ink: '#e6edf3', sub: '#7d8590', btn: '#21262d', link: '#4493f8',
@@ -83,7 +83,7 @@ export const Repo: React.FC<SceneProps> = ({ t, dur, props, beats, w, h }) => {
                   : <path d="M3 1.5h6.5l3.5 3.5v9.5h-10z" fill="none" stroke={G.sub} strokeWidth="1.2" />}</svg>
                 <span style={{ width: 280 }}>{f.name}</span>
                 <span style={{ flex: 1, color: G.sub }}>{f.msg}</span>
-                <span style={{ color: G.sub }}>{i < 2 ? 'now' : `${i + 1} days ago`}</span>
+                <span style={{ color: G.sub }}>{f.age ?? ''}</span>
               </div>
             ))}
           </div>

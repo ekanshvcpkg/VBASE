@@ -51,13 +51,13 @@ render)
   python3 "$SK/master_audio.py" --dir "$W" >/dev/null
   cp "$W/base_cut.mp4" "$W/base_cut_nofx.mp4"
   CL=(); [[ -n "${CLONE_AT:-}" && -n "${CLONE_WORD:-}" ]] && CL=(--clone-at "$CLONE_AT" --clone-word "$CLONE_WORD")
-  "$VIDBASE_PY" "$P/fx_pass.py" --dir "$W" --source "$IN" --zoom-word "${ZOOM_WORD:-zoom}" "${CL[@]}" 2>&1 | grep -E "^zoom|^frames|passed"
+  "$VIDBASE_PY" "$P/fx_pass.py" --dir "$W" --source "$IN" --zoom-word "${ZOOM_WORD:-zoom}" ${CL[@]+"${CL[@]}"} 2>&1 | grep -E "^zoom|^frames|passed"
   cp "$W/base_cut_fx.mp4" "$W/base_cut.mp4"
   "$VIDBASE_PY" "$SK/track_hands.py" --dir "$W" >/dev/null 2>&1 || true
   bash "$SK/bootstrap_remotion.sh" "$W" | tail -1
   [[ -d "$W/proof" ]] && { mkdir -p "$W/remotion_app/public/proof"; cp "$W"/proof/* "$W/remotion_app/public/proof/"; }   # images for proof_grid / before_after
   CW=(); [[ -n "${CLONE_WORD:-}" ]] && CW=(--clone-word "$CLONE_WORD")
-  python3 "$P/make_fx.py" --dir "$W" ${CREATOR_ROLE:+--role "$CREATOR_ROLE"} "${CW[@]}"
+  python3 "$P/make_fx.py" --dir "$W" ${CREATOR_ROLE:+--role "$CREATOR_ROLE"} ${CW[@]+"${CW[@]}"}
   (cd "$W/remotion_app" && npx remotion render src/index.ts MainComposite "$W/final_render.mp4" \
      --gl=angle --codec=h264 --crf=18 --audio-codec=aac --audio-bitrate=192k --concurrency=4 --timeout=120000 2>&1 | grep -E "Encoded|rror" | tail -1)
   python3 "$SK/qc_report.py" --dir "$W" | python3 -c "import sys,json;d=json.load(sys.stdin);print('QC', 'PASS' if d.get('automated_pass') else 'CHECK', d.get('checks',{}).get('loudness'))" || true

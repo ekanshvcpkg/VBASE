@@ -12,6 +12,7 @@ import { Repo } from './ui/Repo';
 import { Flow } from './ui/Flow';
 import { ProofGrid } from './ui/ProofGrid';
 import { BeforeAfter } from './ui/BeforeAfter';
+import { ScreenVideo } from './ui/ScreenVideo';
 import { Code } from './ui/Code';
 import { Stat } from './ui/Stat';
 import { Icon3D } from './three/Icon3D';
@@ -30,6 +31,7 @@ export const SCENES: Record<string, SceneDef> = {
   compare: { component: Compare, design: [1100, 760], designV: [680, 0] },
   proof_grid: { component: ProofGrid, design: [1760, 1000] },
   before_after: { component: BeforeAfter, design: [1760, 1000] },
+  screen_video: { component: ScreenVideo, design: [1760, 1000] },
   held_object: { component: HeldObject, design: [0, 0] }, // layout 'tracked': drawn at full frame size
 };
 
