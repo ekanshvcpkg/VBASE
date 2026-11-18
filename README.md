@@ -11,9 +11,9 @@ A Claude Code plugin that edits your talking-head videos: word-timed cuts, capti
 [![License: MIT](https://img.shields.io/badge/license-MIT-000?style=flat-square)](LICENSE)
 [![macOS](https://img.shields.io/badge/tested%20on-macOS%20·%20Apple%20silicon-000?style=flat-square)](#requirements)
 
-<img src="docs/images/demo.gif" width="720" alt="VBASE demo: the raw take wipes to the edit and a 3D ball lands in the speaker's hand">
+<img src="docs/images/review-room.png" width="860" alt="The VBASE review room: a video player with a timeline and a comments panel with pinned notes">
 
-<sub>The first second of a real VBASE edit: a wipe from the untouched raw take (right) to the edit (left), as a WebGL ball drops into an empty hand.</sub>
+<sub>The VBASE review room: pin notes on exact frames, then send them to Claude for the next take.</sub>
 
 </div>
 
@@ -39,8 +39,6 @@ That's it. Claude transcribes, directs and renders the edit, checks its own work
 
 ## What it does
 
-<img src="docs/images/features.jpg" alt="Frames from a VBASE edit: the name over the footage, a camera zoom, a clone with a callout, a proof grid, a Claude Code panel, the end card">
-
 | | |
 |---|---|
 | **Cuts that sound human** | Word-level timing (WhisperX) plus speech detection (Silero VAD). Pauses are compressed, not chopped; fumbles, filler and tangents go. |
@@ -53,14 +51,8 @@ That's it. Claude transcribes, directs and renders the edit, checks its own work
 | **Studio audio** | Neural denoise (DeepFilterNet), vocal chain, two-pass loudness to −14 LUFS. |
 | **Hand-off** | An OpenTimelineIO timeline (`.otio`) to keep editing in DaVinci Resolve or Premiere. |
 
-<table>
-<tr><td><img src="docs/images/before-after.jpg" alt="Same instant, raw take vs VBASE edit"></td></tr>
-<tr><td align="center"><sub>The same instant: the raw take (empty hand) and the VBASE edit.</sub></td></tr>
-</table>
 
 ## The review room
-
-<img src="docs/images/review-room.png" alt="VBASE review room: video player with timeline, comments panel with pinned notes">
 
 Run `/vbase:review ~/Downloads/my-take.mov`. Click any frame to pin a note, filter open and resolved notes, then press **Send notes to Claude**. Claude reads every note with its snapshot and answers it in the next take. It runs only on `localhost`; nothing is uploaded.
 
