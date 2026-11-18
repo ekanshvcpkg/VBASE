@@ -7,6 +7,7 @@
 #   BRAND LINE1 LINE2 TAGLINE END1 END2 CTA FOOT   on-screen words      SFX=1   add procedural sound effects (off by default)
 #   OUT_NAME                                      file name of the cut (default: <video>-vbase.mp4)
 #   MUSIC_FILE=<mp3/wav> [MUSIC_GAIN=0.25 MUSIC_START=0]   your own background track, ducked under the voice
+#   MUSIC=code                                    compose VBASE's own bed instead (free, fitted to the length)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$(cd "$1" && pwd)"; SRC="$2"; T="$W/takeone"
@@ -59,6 +60,11 @@ if [[ "${SFX:-0}" == 1 ]]; then
 else
   # voice only; the limiter keeps true peak under -1 dBTP
   ffmpeg -v error -y -i bed.wav -af "alimiter=limit=0.84:level=false:attack=2:release=60" -ar 48000 mix.wav
+fi
+# MUSIC=code: compose VBASE's own under-voice bed (pipeline/music/vbase-bed.mjs) at the film's exact length, free
+if [[ "${MUSIC:-}" == code && -z "${MUSIC_FILE:-}" ]]; then
+  ( cd "$VBASE_HOME/take-one" && TAKEONE_MUSIC_DIR="$PWD/scripts/music" node scripts/music.mjs render "$HERE/music/vbase-bed.mjs" --seconds "$D" --out "$T/vbase-bed.wav" | tail -1 )
+  MUSIC_FILE="$T/vbase-bed.wav"
 fi
 # MUSIC_FILE: the creator's own track under the whole film. Starts very low, rises slowly, ducks under the voice
 # (sidechain), lifts a little under the end card, fades out. MUSIC_GAIN (default 0.25) sets how light it is.

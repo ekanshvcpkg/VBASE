@@ -1,41 +1,60 @@
-"""Take One sound design: master_edl.json + fx.json -> takeone/sfx_plan.json (procedural cues for sfx.mjs).
-Every cue sits on the frame of its visual event in the FINAL film (open of OPEN_LEN s, then the edit, then the end card)."""
+"""VBASE sound design: master_edl.json + fx.json -> takeone/sfx_plan.json (procedural cues for Take One's sfx.mjs).
+
+Rules (learned from owner notes: the first SFX pass "didn't fit"):
+  - a sound only where something visibly POPS IN or lands; nothing on cuts, nothing on every word
+  - each cue sits on the frame its visual becomes visible (timings mirror the scenes' own animation curves)
+  - quiet: they accent, they never duck the voice (duckDb 0), tuned to the bed's key (F)
+  - sparse: about one every 3 s at most; two cues never within 0.25 s
+Times are on the FINAL film (the Take One open is drawn over the edit's first 4 s, so offset 0).
+Usage: takeone_sfx_plan.py <EDIT_DIR> [offset=0]
+"""
 import json, sys
 d = sys.argv[1]; OFF = float(sys.argv[2]) if len(sys.argv) > 2 else 0.0; F = 30
-m = json.load(open(f"{d}/master_edl.json")); fx = json.load(open(f"{d}/remotion_app/src/fx.json"))
-cue = {c["scene"]: c for c in m["three_d_cues"]}
-beats = lambda s, a: [cue[s]["timeline_start"] + b["t"] for b in cue[s].get("beats", []) if b["action"] == a] if s in cue else []
+m = json.load(open(f"{d}/master_edl.json"))
+fx = json.load(open(f"{d}/remotion_app/src/fx.json"))
+E = OFF + m["total_duration"]                       # end card starts here
 cues = []
-def add(kind, t, variant=None, **kw):
-    c = {"kind": kind, "frame": int(round(t * F))}
-    if variant: c["variant"] = variant
-    if kind in ("tick", "swish"): kw.setdefault("gainDb", 0); kw.setdefault("minDb", -15)   # texture under the voice
-    if kind == "chime": kw.setdefault("gainDb", 2)
+
+
+def add(kind, t, variant, gain, label, **kw):
+    c = {"kind": kind, "frame": int(round((OFF + t) * F)), "variant": variant, "gainDb": gain, "duckDb": 0, "minDb": -20, "label": label}
     c.update(kw); cues.append(c)
-# open (drawn over the edit's first 4 s): the raw->edit wipe passes mid-frame ~0.75 s, the name lands at 2.45 s
-add("whoosh", 0.78, "soft", label="raw to edit wipe"); add("impact", 2.45, "soft", label="name lands")
-for t in beats("held_object", "hold")[:1]: add("pop", OFF + t, "cork", gainDb=-2, label="ball lands")
-for s in fx["shakes"][:1]: add("press", OFF + s["t"] + 0.05, "soft", gainDb=-2, label="catch")
-for t in beats("held_object", "label"): add("tick", OFF + t, "ui", label="label")
-for w in fx["whips"]: add("whoosh", OFF + w["t"], "fast", label="whip")
-for lt in fx["lower_thirds"]: add("swish", OFF + lt["t0"], "in", label="lower third")
-for ch in fx["chips"]: add("pop", OFF + ch["t0"] + 0.1, "tiny", label="chip")
-if "compare" in cue: add("paper", OFF + cue["compare"]["timeline_start"] + 0.2, "slide", label="panel")
-for i, t in enumerate(beats("compare", "row")): add("tick", OFF + t, "ui", seed=10 + i, label="row")
-for i, t in enumerate(beats("proof_grid", "tile")): add("pop", t, "tiny" if i < 3 else "cork", seed=40 + i, label="proof tile")
-if "before_after" in cue:
-    add("swish", cue["before_after"]["timeline_start"] + 0.05, "in", label="raw vs edit")
-    for t in beats("before_after", "after"): add("press", t, "soft", label="edited half lands")
-if "terminal" in cue: add("swish", OFF + cue["terminal"]["timeline_start"] + 0.1, "in", label="terminal")
-for i, t in enumerate(beats("terminal", "line")): add("tick", OFF + t, "key", seed=20 + i, label="line")
-z = [w for w in m["words"] if w["word"].lower().strip(".,") == "zoom"]
-if len(z) >= 2: add("whoosh", OFF + z[0]["timeline_start"] + 0.06, "fast", gainDb=-2, label="zoom in"); add("whoosh", OFF + z[1]["timeline_start"] + 0.06, "soft", gainDb=-3, label="zoom out")
-if "flow" in cue: add("swish", OFF + cue["flow"]["timeline_start"] + 0.1, "in", label="flow")
-for i, t in enumerate(beats("flow", "step")): add("tick", OFF + t, "ui", seed=30 + i, label="step")
-for f in fx["flashes"]: add("chime", OFF + f["t"], "sparkle", label="clone spawns")
-for zb in fx["zoomblurs"]: add("whoosh", OFF + zb["t"], "soft", gainDb=-2, label="zoom blur")
-for t in beats("icon3d", "land"): add("chime", OFF + t, "bell", label="star lands")
-E = OFF + m["total_duration"]
-add("swish", E + 0.05, "soft", label="step back"); add("press", E + 0.66, "confirm", gainDb=-2, label="CTA")
-json.dump({"fps": F, "seed": 7, "key": "C", "bpm": 100, "cues": cues}, open(f"{d}/takeone/sfx_plan.json", "w"), indent=1)
-print(len(cues), "cues")
+
+
+def beats(c, action):
+    return [c["timeline_start"] + b["t"] for b in c.get("beats", []) if b["action"] == action]
+
+
+# the open: the VBASE name card lands (Spring 'heavy' from 2.55 s reads as landed ~0.12 s later)
+add("chime", 2.67, "glint", -6, "VBASE name")
+for c in m.get("three_d_cues", []):
+    s, sc = c["timeline_start"], c.get("scene")
+    if sc == "held_object":
+        for t in beats(c, "hold")[:1]: add("pop", t, "cork", -7, "ball lands in palm")
+        for t in beats(c, "throw")[:1]: add("press", t + 1.0, "soft", -8, "ball caught")
+    elif sc == "proof_grid":
+        tiles = beats(c, "tile")
+        if tiles: add("swish", s + 0.04, "soft", -8, "looks grid in")
+        if tiles: add("chime", tiles[-1] + 0.05, "glint", -6, "the chosen look")
+    elif sc == "mascot3d":
+        add("pop", s + 0.06, "pop", -5, "character card pops")
+    elif sc == "glass_card":
+        add("pop", s + 0.06, "tiny", -6, "glass card pops")
+        if c.get("props", {}).get("logo"): add("chime", s + 0.5, "bell", -9, "VBASE word lands")
+    elif sc in ("screen_video", "code", "terminal") and c.get("layout") == "split":
+        add("swish", s + 0.2, "in", -9, f"{sc} window floats in")
+    elif sc == "glass_chips":
+        add("pop", s + 0.06, "tiny", -7, "chips header")
+        for i, t in enumerate(beats(c, "chip")): add("tick", t + 0.04, "ui", -10, "chip resolves", seed=40 + i)   # the check mark shows a frame after the beat
+    elif sc == "repo":
+        for t in beats(c, "star")[:1]: add("press", t, "confirm", -6, "GitHub star")
+# end card: the step back, then the button
+add("swish", E + 0.05, "soft", -8, "end card")
+add("press", E + 0.86, "confirm", -9, "end card button")
+
+# never two cues within 0.25 s: keep the earlier one
+cues.sort(key=lambda c: c["frame"]); kept = []
+for c in cues:
+    if not kept or c["frame"] - kept[-1]["frame"] >= 8: kept.append(c)
+json.dump({"fps": F, "seed": 7, "key": "F", "bpm": 102, "cues": kept}, open(f"{d}/takeone/sfx_plan.json", "w"), indent=1)
+print(len(kept), "cues:", ", ".join(f'{c["frame"]/F:.2f}s {c["label"]}' for c in kept))
