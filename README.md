@@ -11,7 +11,7 @@ A Claude Code plugin that edits your talking-head videos: word-timed cuts, capti
 [![License: MIT](https://img.shields.io/badge/license-MIT-000?style=flat-square)](LICENSE)
 [![macOS](https://img.shields.io/badge/tested%20on-macOS%20·%20Apple%20silicon-000?style=flat-square)](#requirements)
 
-<img src="docs/images/review-room.png" width="860" alt="The VBASE review room: a video player with a timeline and a comments panel with pinned notes">
+<img src="docs/images/vbase-review-room.png" width="860" alt="The VBASE review room: a video player with a timeline and a comments panel with pinned notes">
 
 <sub>The VBASE review room: pin notes on exact frames, then send them to Claude for the next take.</sub>
 
