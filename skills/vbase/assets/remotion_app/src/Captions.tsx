@@ -42,7 +42,7 @@ const STYLES = {
   cinematic: { maxWords: 7, size: 46, weight: 500, upper: false, look: 'refined' },
 } as const;
 
-export const Captions: React.FC<{ words: Word[]; style: string; look?: string; accent?: string; split?: number }> = ({ words, style, look, accent, split = 0 }) => {
+export const Captions: React.FC<{ words: Word[]; style: string; look?: string; accent?: string; split?: number; splitLeft?: number }> = ({ words, style, look, accent, split = 0, splitLeft = 0 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const base = STYLES[style as keyof typeof STYLES] ?? STYLES.natural;
@@ -65,7 +65,7 @@ export const Captions: React.FC<{ words: Word[]; style: string; look?: string; a
         alignItems: 'center',
         // 9:16: clear TikTok/Reels/Shorts bottom UI; 16:9: classic lower third
         paddingBottom: vertical ? 320 : s.look === 'refined' ? 70 : 110,
-        paddingLeft: vertical ? 70 : 160,
+        paddingLeft: vertical ? 70 : 160 + splitLeft * width * 0.42,
         // while a side panel is open, captions centre in the free 58% so they never run onto it
         paddingRight: vertical ? 70 : 160 + split * width * 0.42,
         pointerEvents: 'none',

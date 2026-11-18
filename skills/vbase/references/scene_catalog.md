@@ -52,6 +52,7 @@ adding proof, scale or contrast, should be cut.
 - Use for small payoffs such as `stat`. On 9:16 the overlay box is short, so a square scene like `icon3d` renders small there; give it `split` when it is the payoff.
 
 **`split`**
+- `props.side: "left"` puts the panel on the left (the speaker moves right). **Open it on the side the speaker points to** — a panel opposite the pointing hand, or a full-frame pop over the face, reads as wrong.
 - An opaque paper (or ink) panel wipes in over the right 42% (16:9) or the top half (9:16). The speaker is reframed beside it, face visible.
 - Panel scenes are drawn at the panel's true size.
 - Use when the face matters while the visual explains.

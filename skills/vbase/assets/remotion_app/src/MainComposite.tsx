@@ -34,14 +34,15 @@ const Speaker: React.FC<{ edl: Edl; sceneCues: SceneCue[]; children?: React.Reac
   // holds: the edit slams the brakes — one slow, deliberate creep in, no cuts, no graphics
   let creep = 1;
   for (const [a, b] of edl.holds ?? []) creep *= 1 + 0.06 * prog(t, a, b - a, EASE.inOut) * (1 - prog(t, b, 0.6, EASE.inOut));
-  let split = 0, broll = 0;
+  let split = 0, broll = 0, splitL = 0;
   for (const c of sceneCues) {
     const w = layoutWeight(c, t);
-    if (c.layout === 'split') split = Math.max(split, w);
+    if (c.layout === 'split') { split = Math.max(split, w); if ((c as any).props?.side === 'left') splitL = Math.max(splitL, w); }
     if (c.layout === 'broll') broll = Math.max(broll, w);
   }
   const vertical = height >= width * 0.95;
-  const tx = vertical ? 0 : -width * 0.21 * split; // face lands centred in the free 58%
+  // face lands centred in the free 58%: away from a right panel, or towards the right for a left panel
+  const tx = vertical ? 0 : -width * 0.21 * (split - splitL) + width * 0.21 * splitL;
   const ty = vertical ? height * 0.19 * split : 0;
   const fy = (edl.speaker_face_y_ratio ?? 0.4) * 100;
   const cam = cameraAt(t, width); // editor moves: punches, shakes, whip, zoom-blur (EditorFX.tsx)
@@ -95,7 +96,8 @@ export const MainComposite: React.FC<{ edl: Edl }> = ({ edl }) => {
       <EditorOverlay accent={edl.brand?.accent ?? '#C96442'} />
       {edl.brand?.captions !== 'none' && (
         <Captions words={edl.words ?? []} style={edl.style ?? 'natural'} look={edl.brand?.captions} accent={edl.brand?.accent}
-          split={Math.max(0, ...sceneCues.filter((c) => c.layout === 'split').map((c) => layoutWeight(c, tNow)))} />
+          split={Math.max(0, ...sceneCues.filter((c) => c.layout === 'split' && (c as any).props?.side !== 'left').map((c) => layoutWeight(c, tNow)))}
+          splitLeft={Math.max(0, ...sceneCues.filter((c) => c.layout === 'split' && (c as any).props?.side === 'left').map((c) => layoutWeight(c, tNow)))} />
       )}
     </AbsoluteFill>
   );

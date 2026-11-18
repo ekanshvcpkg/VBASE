@@ -47,7 +47,7 @@ export type SceneCue = {
 };
 
 type Box = { x: number; y: number; w: number; h: number };
-export const layoutBox = (layout: Layout, W: number, H: number): Box => {
+export const layoutBox = (layout: Layout, W: number, H: number, side: 'left' | 'right' = 'right'): Box => {
   if (layout === 'tracked') return { x: 0, y: 0, w: W, h: H };
   if (H >= W * 0.95) { // portrait and square (9:16, 4:5, 1:1) share the stacked layouts
     if (layout === 'overlay') return { x: W * 0.08, y: H * 0.03, w: W * 0.84, h: H * 0.28 };
@@ -57,7 +57,7 @@ export const layoutBox = (layout: Layout, W: number, H: number): Box => {
   // landscape overlay hugs the right edge: a centred speaker's head spans roughly x 0.38-0.62
   if (layout === 'overlay') return { x: W * 0.68, y: H * 0.1, w: W * 0.3, h: H * 0.6 };
   // split = an opaque editorial panel, full height, exactly covering what the speaker vacates
-  if (layout === 'split') return { x: W * 0.58, y: 0, w: W * 0.42, h: H };
+  if (layout === 'split') return side === 'left' ? { x: 0, y: 0, w: W * 0.42, h: H } : { x: W * 0.58, y: 0, w: W * 0.42, h: H };
   return { x: W * 0.04, y: H * 0.035, w: W * 0.92, h: H * 0.79 };
 };
 
@@ -86,7 +86,9 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
   const t = frame / fps; // inside a <Sequence>, frame 0 = cue start
   const dur = cue.timeline_end - cue.timeline_start;
   const layout = cue.layout ?? 'overlay';
-  const box = layoutBox(layout, width, height);
+  const side: 'left' | 'right' = cue.props?.side === 'left' ? 'left' : 'right';
+  const box = layoutBox(layout, width, height, side);
+  const dir = side === 'left' ? -1 : 1; // which way the panel leaves
   const vertical = height >= width * 0.95;
   // portrait: a fixed design width, height matched to the box so the scene fills it (bigger type)
   const tracked = layout === 'tracked';
@@ -109,9 +111,9 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
       {panel && (
         <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, background: P.bg,
-          clipPath: vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`,
-          transform: vertical ? `translateY(${-wipeOut * 105}%)` : `translateX(${wipeOut * 105}%)`,
-          boxShadow: vertical ? '0 18px 40px -20px rgba(0,0,0,0.5)' : '-18px 0 40px -20px rgba(0,0,0,0.5)' }}>
+          clipPath: vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : side === 'left' ? `inset(0 0 0 ${(1 - wipeIn) * 100}%)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`,
+          transform: vertical ? `translateY(${-wipeOut * 105}%)` : `translateX(${dir * wipeOut * 105}%)`,
+          boxShadow: vertical ? '0 18px 40px -20px rgba(0,0,0,0.5)' : `${-dir * 18}px 0 40px -20px rgba(0,0,0,0.5)` }}>
           <Grain frame={frame} />
         </div>
       )}
@@ -119,8 +121,8 @@ export const SceneLayer: React.FC<{ cue: SceneCue; index: number; brand?: Brand 
           because Chrome also scales a zoomed element's own left/top */}
       <div style={{ position: 'absolute', left: box.x + (box.w - dw * zoom) / 2, top: box.y + (box.h - dh * zoom) / 2,
         width: dw * zoom, height: dh * zoom, opacity: Math.min(1, env * 1.3),
-        clipPath: panel ? (vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`) : undefined,
-        transform: panel ? (vertical ? `translateY(${-wipeOut * box.h * 1.05}px)` : `translateX(${wipeOut * box.w * 1.05}px)`) : `translateY(${(1 - env) * 24}px)` }}>
+        clipPath: panel ? (vertical ? `inset(0 0 ${(1 - wipeIn) * 100}% 0)` : side === 'left' ? `inset(0 0 0 ${(1 - wipeIn) * 100}%)` : `inset(0 0 0 ${(1 - wipeIn) * 100}%)`) : undefined,
+        transform: panel ? (vertical ? `translateY(${-wipeOut * box.h * 1.05}px)` : `translateX(${dir * wipeOut * box.w * 1.05}px)`) : `translateY(${(1 - env) * 24}px)` }}>
         <div style={{ position: 'relative', width: dw, height: dh, zoom }}>
           <Comp t={t} dur={dur} props={{ palette, ...(cue.props ?? {}) }} beats={cue.beats ?? []} accent={cue.accent ?? cue.props?.accent ?? brand?.accent ?? THEME.accent} index={index}
             w={dw} h={dh} vertical={dh > dw * 1.1} layout={layout} />

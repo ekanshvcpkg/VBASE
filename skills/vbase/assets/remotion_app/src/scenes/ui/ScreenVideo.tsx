@@ -14,7 +14,7 @@ export const ScreenVideo: React.FC<SceneProps> = ({ t, dur, props, w, h }) => {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: ww, height: wh, borderRadius: 16, overflow: 'hidden', background: '#0A0A0A', border: '1px solid #2E2E2E',
-        boxShadow: THEME.shadow, opacity: Math.min(1, inn * 1.4) * (1 - out), transform: `translateY(${(1 - inn) * 30}px) scale(${mix(inn, 0.97, 1) * push})` }}>
+        boxShadow: THEME.shadow, transformOrigin: props.side === 'left' ? '85% 60%' : props.side === 'right' ? '15% 60%' : '50% 50%', opacity: Math.min(1, inn * 1.4) * (1 - out), transform: `translateY(${(1 - inn) * 30}px) scale(${mix(inn, props.side ? 0.6 : 0.97, 1) * push})` }}>
         <div style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', borderBottom: '1px solid #1F1F1F' }}>
           {['#FF5F57', '#FEBC2E', '#28C840'].map((c) => <div key={c} style={{ width: 14, height: 14, borderRadius: 7, background: c }} />)}
           <div style={{ marginLeft: 16, flex: 1, height: 32, borderRadius: 8, background: '#161616', display: 'flex', alignItems: 'center',
