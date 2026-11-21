@@ -7,5 +7,15 @@
   "homepage": "https://github.com/ekanshvcpkg/VBASE",
   "repository": "https://github.com/ekanshvcpkg/VBASE",
   "license": "MIT",
-  "keywords": ["video", "editing", "captions", "remotion", "whisperx", "threejs", "claude-code"]
+  "keywords": ["video", "editing", "captions", "remotion", "whisperx", "threejs", "claude-code"],
+  "interface": {
+    "displayName": "VBASE",
+    "developerName": "Ekansh",
+    "shortDescription": "Raw take in, edited video out: a Claude Code plugin that edits talking-head videos.",
+    "longDescription": "VBASE turns one raw talking-head take into an edited video inside Claude Code. It cuts between words using WhisperX timings and Silero VAD, adds word-by-word captions, camera moves, 3D graphics and an open and end card, and masters the audio to -14 LUFS. Every take opens in a local review room where you pin notes on exact frames; each note reaches Claude with its time, frame, position in the picture and a snapshot, and Claude answers it in the next take. Everything runs locally and no paid API is required.",
+    "category": "Tools & Integrations",
+    "logo": "./docs/images/vbase-logo.svg",
+    "composerIcon": "./docs/images/vbase-logo.svg",
+    "screenshots": ["./docs/images/vbase-review-room.png"]
+  }
 }
