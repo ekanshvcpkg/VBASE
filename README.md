@@ -5,7 +5,7 @@
 # VBASE
 
 **Raw take in. Edited video out.**<br>
-A Claude Code plugin that edits your talking-head videos: word-timed cuts, captions, 3D objects in your hands,<br>graphics that live behind you, a 3D buddy that joins in, music made in code, and a review room for your notes.
+A Claude Code plugin that edits your talking-head videos: cuts, captions, 3D effects, camera moves,<br>and review notes pinned to exact frames, which Claude turns into the next take.
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-000?style=flat-square)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-000?style=flat-square)](LICENSE)
@@ -86,11 +86,68 @@ Run these one at a time:
 | **Hand-off** | An OpenTimelineIO timeline (`.otio`) to keep editing in DaVinci Resolve or Premiere. |
 
 
-## The review room
+## The review room: notes pinned to the exact frame
 
 <img src="docs/images/vbase-review-room.gif" width="860" alt="Pinning a note on a frame, leaving a whole-film note, resolving a note and sending notes to Claude in the VBASE review room">
 
-It opens by itself after every edit at `http://localhost:4400` (or run `/vbase:review ~/Downloads/my-take.mov`). Click any frame to pin a note, filter open and resolved notes, then press **Send notes to Claude**. Claude reads every note with its snapshot and answers it in the next take. It runs only on `localhost`; nothing is uploaded.
+This is the core idea of VBASE. Most AI editors give you one shot and a text box. VBASE gives you a review room like a
+real post-production house: you watch the take, **click on the exact spot in the picture** that bothers you, write what you
+want, and press **Send notes to Claude**. It opens by itself after every edit at `http://localhost:4400`
+(or run `/vbase:review ~/Downloads/my-take.mov`), and it runs only on `localhost`: nothing is uploaded.
+
+**What Claude receives for every note**
+
+| Field | Example | Why it matters |
+|---|---|---|
+| Take | `my-take-vbase-v11.mp4` | Notes stay pinned to the version you watched, even after newer takes exist. |
+| Time and frame | `24.266 s` · frame `728` | The exact moment, to the frame (30 fps). |
+| Position in the picture | `x 0.26, y 0.55` | Where you clicked, as a fraction of the frame. "This" and "here" have a meaning. |
+| Snapshot | `shots/<id>.jpg` | The frame itself with your pin drawn in, so Claude *sees* what you saw. |
+| Your words | *"it's covering my face, move it"* | Plain language, any length. Leave the position empty for a note on the whole film. |
+| Status | open / resolved | Resolved notes are kept but not acted on again. |
+
+**How Claude turns that into an exact fix.** Every take is built from one edit decision list, so a frame number is not a
+guess. Claude looks it up and knows:
+
+- **the word you were saying** at that frame, and where it sits in the raw take (every cut keeps its source time);
+- **what was on screen**: which graphic, card, window or effect, when it started, and its animation beats;
+- **what you clicked on**: the element under your pin, compared with the speaker's face box and the free wall space
+  measured for that shot;
+- **why it is there**: the edit plan and the cut audit say why each cut and each graphic was chosen.
+
+So *"it's covering my face"* at `x 0.26, y 0.55` becomes "move the VBASE card at 23.3 s out of the face box, into the free
+wall on the left", not "regenerate the whole video". Each round renders the next take (`-v2`, `-v3` …). The review room
+picks it up on its own, and Claude marks each note it answered as resolved. VBASE's own launch video went through 16 takes this way.
+Real notes from those rounds included "the zoom has jitter", "this looks very AI", "put it behind me" and "the music is too loud".
+
+## What Claude knows before it edits
+
+Claude never edits blind. The analyze stage turns your raw take into structured data, and every creative decision is
+written against it:
+
+| Data | Made by | Used for |
+|---|---|---|
+| Every word with its start and end time | WhisperX (`large-v3-turbo`) | Cutting between words, never through them; word-by-word captions; graphics that land on the word you say. |
+| Speech regions | Silero VAD | Telling a thinking pause from dead air. |
+| Silences and room tone | FFmpeg `silencedetect` | Compressing pauses by type instead of chopping them; a room-tone bed under every cut. |
+| A first silence pass | auto-editor | A second opinion on what can go. |
+| Scene and shot changes | PySceneDetect | Respecting existing cuts in the footage. |
+| Format, length, frame rate, a probe frame | ffprobe | Choosing the output shape and the speaker-centred crop. |
+| Where your face is | MediaPipe | Framing, and keeping text and graphics off your face. |
+| Your editing profile | onboarding (`~/.vidbase/profile.json`) | Your style on every video without being asked again: format, captions, pace, name, links. |
+
+Claude then writes two things. **`edit_plan.md`** holds the hook, the emotional spine, what to cut and why, and which line
+gets which visual. **`edl_draft.json`** holds the same decisions as data, anchored to word IDs rather than guessed
+timestamps. The scripts do the frame-accurate arithmetic:
+
+- `master_edl.json`: every kept segment with its source time, every graphic with its time window and beats;
+- `cut_audit.json`: every jump cut, the seconds removed, the kind of pause, and the words on either side.
+
+While rendering, VBASE measures more of the picture: your hands (for objects you hold), a clean cut-out of you in every
+frame (Robust Video Matting, so graphics can sit behind you), and the free wall beside your head for each graphic.
+
+**Before you see a take**, a self-review checks loudness (−14 LUFS) and true peak, black frames, on-screen text size
+and the composition. Only a take that passes goes to the review room.
 
 ## How it works
 
@@ -108,7 +165,7 @@ flowchart LR
   I -.-> C
 ```
 
-Claude writes the creative decisions (the hook, what to cut, which scenes, which words to highlight) into an edit decision list; the scripts do the frame-accurate arithmetic. A self-review pass checks loudness, black frames, text size and composition before you see anything.
+Claude makes the creative calls; deterministic scripts make every frame-accurate move. The loop back from the review room is what turns a good first cut into the one you want.
 
 ## Commands
 
